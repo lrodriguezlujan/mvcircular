@@ -1,0 +1,18 @@
+Package: mvCircular
+Type: Package
+Title: Multivariate circular statistics package
+Version: 0.1
+Date: 2015-06-10
+Author: Luis Rodriguez-Lujan
+Maintainer: Luis Rodriguez-Lujan <luis.rodriguezl@alumnos.upm.es>
+Description: Multivariate circular statistics package, includes von Mises and circular normal distributions, statistical tests, plots, etc
+License: GPL (>= 2)
+Depends: R6 (>= 2.0.0),
+         circular (>= 0.4.7),
+         matrixcalc (>= 1.0.0),
+         tmvtnorm (>= 1.4),
+         MASS (>= 7.0.0),
+         bit64 (>= 0.9.0),
+         coda(>= 0.17.1),
+         mvtnorm (>= 1.0.0),
+         corpcor (>= 1.6.7)
