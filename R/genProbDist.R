@@ -2,71 +2,133 @@ PROBDIST_CLASS <- "mvCircularProbDist"
 #' genProbDist Methods
 #' 
 
-#'
+#'x
 #'
 #' @export
 getSamples <- function(obj, n, ...){
   UseMethod("getSamples", obj)
 }
 
-#'
+#'x
 #'
 #' @export
 fval <- function(obj, x, ...){
   UseMethod("fval", obj)
 }
 
-#'
+#'x
 #'
 #' @export
 Fval <- function(obj, x, ...){
   UseMethod("Fval", obj)
 }
 
-#'
+#'x
 #'
 #'@export
 normalize <- function(obj, ...){
   UseMethod("normalize",obj)
 }
 
-#'
+#'x
 #'
 #'@export
 circMarginal <- function(obj, x, i, ...){
   UseMethod("circMarginal",obj)
 }
 
-#'
+#'x
 #'
 #'@export
 circCor <- function(obj, i, j, ...){
   UseMethod("circCor",obj)
 }
 
-#'
+#'x
 #'
 #'@export
 circMarginalMean <- function(obj, i, ...){
   UseMethod("circMarginalMean",obj)
 }
 
-#'
+#'x
 #'
 #'@export
 circMarginalConcentration <- function(obj, i, ...){
   UseMethod("circMarginalConcentration",obj)
 }
 
-#'
+#'x
 #'
 #'@export
 contourPlot <- function(obj, ...){
   UseMethod("contourPlot",obj)
 }
 
+#'x
+#'
+#'@export
+torusPlot <- function(obj, ...){
+  UseMethod("torusPlot",obj)
+}
 
-#' Plot Bivariate contours
+
+#' Plot Bivariate 3D torus
+#'
+#'@examples
+#'  obj <- mvVonMises(c(3*pi/2, pi/2), rep(1.5,2), matrix( c(0,2,2,0) ,ncol=2,nrow=2) )
+#'  obj <- normalize(obj)
+#'  torusPlot(obj)
+#'  
+#'@export
+torusPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T, k = 4, ...) {
+  
+  if ( obj$dim != 2 ) stop("Contour plot only works for 2-d distributions")
+  
+  # Generate lattice
+  dims <- obj$dim 
+  # Compute number point per dim
+  samplesPerDim <- floor(npoints ^ (1/dims))
+  
+  # Since 2pi == 0 we create  n+1 samples per dim and remove the last one (2pi) to avoid double-evaluating the same point
+  dimvals <- sort(seq(from = 0, to = 2*pi, length.out = (samplesPerDim + 1))[-(samplesPerDim + 1)] )
+  points  <- expand.grid( split(rep(dimvals, each = dims),1:dims) )
+  z <- fval(obj, points, k)
+  
+  # Create colorscale
+  colorscale <- threejs::colorscaleThreeJS(max = max(z), min = min(z), legend.on = T, legend.labels.on = T, 
+                                  legend.labels.title = 'f(x)')
+  
+  # Lighting
+  light <- list( threejs::ambientLight("#555555"), threejs::directionalLight("#FFFFFF",intensity = 0.5,from = c(0,0,1)) )
+  
+  # Helpers
+  helpers <- list( threejs::axisHelper(), threejs::gridHelper(rotation = c(0,pi/2,pi/2), size = 100) )
+  
+  # Color function
+  color.extra <- list( npoints = samplesPerDim, r = 7.5, tuber = 2.5, z = z )
+  colorFunction <- htmlwidgets::JS("function(v,g,i,e,cs){ 
+  // Compute angles
+  var theta = Math.atan2(v.y,v.x);
+  theta += (theta < 0 ? 2 * Math.PI : 0)
+  var phi = Math.asin(v.z/e.tuber);
+  phi = ( (Math.sqrt((v.y*v.y) + (v.x*v.x)) < e.r) ? Math.PI-phi : phi );
+  phi += (phi < 0 ? 2 * Math.PI : 0)
+  // Get poistion
+  return( cs.getColor( e.z[ e.npoints * Math.floor( theta * e.npoints / (2*Math.PI) ) + Math.floor( phi * e.npoints / (2*Math.PI) )] ) );
+  }")
+  
+  # Object (torus)
+  obj <- threejs::objThreeJS( 
+    threejs::torusGeometry( inner = 5, outer = 10, color.extra = color.extra, vertex.color.fun = colorFunction),
+    threejs::lambertMaterial(vertexColors = htmlwidgets::JS("THREE.VertexColors" ), side = htmlwidgets::JS("THREE.DoubleSide") ))
+  
+  # Plot
+  threejs::composition( objects = obj , lights = light, helpers = helpers, colorscale = colorscale)
+}
+
+
+#' Plot Bivariate contour
 #'
 #'@examples
 #'  obj <- mvVonMises(c(3*pi/2, pi/2), rep(1.5,2), matrix( c(0,2,2,0) ,ncol=2,nrow=2) )
@@ -94,7 +156,6 @@ contourPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T, k = 4
     filled.contour(x = dimvals, y = dimvals, z = z, ...)
   
 }
-
 
 #'Plot multivariate circular distribution
 #'
