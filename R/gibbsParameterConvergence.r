@@ -1,24 +1,28 @@
 #' Vm Parameter inf. convergence
 #'
 #'
-#'@export
-gibbsParamVmConvergence <- function(n,mu,kappa,lambda,blocks=20,...){
+#'
+gibbsParamVmConvergence <- function(n, mu, kappa, lambda, blocks=20, ...) {
   
   # Call method to Generate samples
-  samples <- rmvvonmises_rs(n,mu,kappa,lambda,...)
+  mu <- circular::as.circular(mu, modulo = "2pi", zero = 0, template = "none",
+                              type = "angles", units = "radians", rotation = "counter" )
+  
+  samples <- rmvvonmises_rs(n, mu, kappa, lambda, type = "gibbs", ...)
   
   # Divide each one in blocks
-  chainblocks <- lapply(samples,createBlocks,blocks)
+  chainblocks <- lapply(samples, createBlocks, blocks)
   
   #Fit parameters for each chain and compute variance
   withinVariances <- Reduce(rbind,lapply(chainblocks,function(x){
+    
     # X is a list of  blocks
     
     #Get parameters for each chain
     chainParams <- blockListParams(x)
     
     # Compute variances
-    varianceVector <- vmParameterVariance(chainParams$mu,chainParams$kappa,chainParams$lambda)
+    varianceVector <- vmParameterVariance(chainParams$mu, chainParams$kappa, chainParams$lambda)
     
     return(varianceVector)
   }))
@@ -40,7 +44,7 @@ gibbsParamVmConvergence <- function(n,mu,kappa,lambda,blocks=20,...){
   # Compute Variance vector
   mixVarVector <- vmParameterVariance(mixParams$mu,mixParams$kappa,mixParams$lambda)
   
-  return(max(sqrt(meanWithinVariance/mixVarVector)))
+  return( max( sqrt(meanWithinVariance / mixVarVector)))
 }
 
 
@@ -53,10 +57,10 @@ createBlocks <- function(data,nblocks){
   
   # Split in list
   p <- ncol(data)
-  div <- split( t(data) , rep(1:nblocks, each = p*(nrow(data)/nblocks) ) )
+  div <- split( t(data) , rep(1:nblocks, each = p * (nrow(data) / nblocks) ) )
   
   # tomatrix!
-  return(lapply(div,function(x){matrix(x,ncol=p,byrow=T)}))
+  return(lapply(div,function(x){matrix(x, ncol = p, byrow = T)}))
 }
 
 #' Mix dataset
@@ -67,11 +71,11 @@ mixMatricesAlternateRow <- function(matrixlist){
   
   # Create final matrix
   p <- length(matrixlist)
-  totalRows <- Reduce("+",lapply(matrixlist,nrow))
-  res <- matrix(NA,ncol=ncol(matrixlist[[1]]),nrow=totalRows)
+  totalRows <- Reduce("+", lapply(matrixlist,nrow))
+  res <- matrix(NA, ncol = ncol(matrixlist[[1]]), nrow = totalRows)
   
   # Copy to matrix
-  for(i in 1:p){
+  for (i in 1:p) { 
     res[seq(i,totalRows,p),] <- matrixlist[[i]]
   }
   
@@ -83,12 +87,16 @@ mixMatricesAlternateRow <- function(matrixlist){
 #' @param mu Matrix of mu parameters for each block
 #' @param kappa Matrix of kappa parameters for each block
 #' @param lambda Matrix of lambda parameters for each block
+#' 
+#' @importFrom circular var.circular
 #'
-#'@export
+#'
 vmParameterVariance <- function(mu,kappa,lambda){
   
-  # Compute mu circular variance
-  mu_var<-apply(mu,2,var.circular)
+  # Compute mu circular varianceç
+  mu <- circular::as.circular(mu, modulo = "2pi", zero = 0, template = "none",
+                              type = "angles", units = "radians", rotation = "counter" )
+  mu_var <- apply(mu, 2, circular::var.circular)
   
   # For kappa and lambda apply linear variance
   kappa_var <- apply(kappa,2,stats::var)
@@ -104,11 +112,11 @@ vmParameterVariance <- function(mu,kappa,lambda){
 #'
 blockListParams <- function(blockList){
   
-  #Get parameters for each block :) (in a list)
+  #Get parameters for each block (in a list)
   chainParams <- lapply(blockList,function(y){
-    params <- fit_mvvonmises(y)
-    lambda <- matrix(params$lambda,ncol=ncol(y),nrow=ncol(y))
-    return(list(mu=params$mu,kappa=params$kappa,lambda=lambda[lower.tri(lambda,diag = F)]))
+    params <- fit_mvvonmises(as.mvCircular(y))
+    lambda <- matrix(params$lambda,ncol = ncol(y),nrow = ncol(y))
+    return(list(mu = params$mu,kappa = params$kappa,lambda = lambda[lower.tri(lambda,diag = F)]))
   })
   
   # Put them together in matrices
@@ -116,5 +124,5 @@ blockListParams <- function(blockList){
   kappachain <- Reduce(rbind,lapply(chainParams,function(x){return(x$kappa)}))
   lambdachain <- Reduce(rbind,lapply(chainParams,function(x){return(x$lambda)}))
   
-  return(list(mu=muchain,kappa=kappachain,lambda=lambdachain))
+  return(list(mu = muchain,kappa = kappachain,lambda = lambdachain))
 }

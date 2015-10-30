@@ -15,11 +15,14 @@
 #' @param retry Number of retries (Convergence can fail sometimes)
 #' @param type Wheter to use optimized expresion or regular
 #'
-#'@export
-#'@useDynLib mvCircular
+#' @return List with mu, kappa and lambda parameters, data samples and loss function value. If method didnt reach convergence loss will be NA
+#' 
+#' @useDynLib mvCircular
 #'
-#'@examples 
-#' fit_mvvonmises(rmvvonmises(100,rep(0,3),rep(1,3),matrix(0,nrow=3,ncol=3)))
+#' @examples 
+#' fit_mvvonmises(rmvVonMises(100,rep(0,3),rep(1,3),matrix(0,nrow=3,ncol=3)))
+#' 
+#' @export
 fit_mvvonmises <- function(samples,
                            mu = rep(0,ncol(samples)),
                            kappa = rep(1,ncol(samples)),
@@ -32,7 +35,16 @@ fit_mvvonmises <- function(samples,
                            retry = 10,
                            type = c("opt","old")){
   
+
+  
   # VALIDATE INPUTS
+  
+  if (!is.mvCircular(samples))
+    stop("Samples should be multivariate circular")
+  
+  # Get sample size
+  p <- ncol(samples)
+  n <- nrow(samples)
   
   ## Check type
   type <- match.arg(type)
@@ -66,10 +78,6 @@ fit_mvvonmises <- function(samples,
     stop("Number of retrials should be a strictly positive integer")
   
   #### END VALIDATION ### 
-  
-  # Get sample size
-  p <- ncol(samples)
-  n <- nrow(samples)
   
   # Number of lambda variables
   lambda.nvars <- ((p*p) - p)/2
@@ -139,14 +147,14 @@ fit_mvvonmises <- function(samples,
   # Last exec was successfull
   if ( !fail )
     # Return parameters
-    return(list(sample = samples,
+    return(list(samples = samples,
               mu = ret$mu,
               kappa = ret$kappa,
-              lambda = ret$lambda,
+              lambda = matrix(ret$lambda,ncol = p,nrow = p),
               loss = ret$loss))
   else
     # Return call
-    return(list( sample = samples,
+    return(list( samples = samples,
                  mu = mu,
                  kappa = kappa,
                  lambda = lambda,

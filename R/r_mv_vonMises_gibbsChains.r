@@ -210,8 +210,8 @@ rmvvonmises_rs <- function(n,
               errno = integer(1),
               PACKAGE="mvCircular")
     #cat(sprintf("END Sampling GIBBS, maxKappa: %f , sum(ABS)Lambda: %f\n",max(kappa),sum(abs(lambda))))
-    seed <- as.integer64(ret$seeds)
-    return(circular(matrix(ret$ret,ncol=p,byrow=T)))
+    seed <- bit64::as.integer64(ret$seeds)
+    return(matrix(ret$ret,ncol=p,byrow=T))
   })
   
   # Return value

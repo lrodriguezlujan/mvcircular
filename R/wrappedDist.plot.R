@@ -1,25 +1,27 @@
-#'Plot multivariate circular normal
+#'Plot multivariate wrapped distribution
 #'
 #' @param mu
 #' @param sigma
 #' @param data
-#' @param color
+#' @param dfunc
+#' @param ...
+#' @param colors
 #' @param cex.params
 #' @param rose.bins
 #' @param cex.sigma
 #' @param pch
 #' 
 #' @importFrom MASS ginv
-#' @importFrom tmvtnorm dtmvnorm.marginal
 #' @importFrom circular rose.diag
 #' 
 #'@export
-circularNorm.plot <- function(mu, sigma, bounds,
-                              data,color = "red",
-                              cex.params = 2,
-                              rose.bins = 25,
-                              cex.sigma = 2, 
-                              pch = 18){
+wrappedDist.plot <- function(mu, sigma, data,
+                             dfunc, ...,
+                             color = "red",
+                             cex.params = 2,
+                             rose.bins = 25,
+                             cex.sigma = 2, 
+                             pch = 18){
   
   #Get dist params
   sigma_inv <- MASS::ginv(sigma)
@@ -49,11 +51,13 @@ circularNorm.plot <- function(mu, sigma, bounds,
       else if (i == (j - 1)) {
         
         par(mar = c(0, 0, 0, 0))
-        den_x <- seq( as.numeric( bounds$lower[i]), as.numeric(bounds$upper[i]), 0.01)
-        den_y <- tmvtnorm::dtmvnorm.marginal(den_x,mean = mu, sigma = sigma,n = i,
-                              lower = as.numeric(bounds$lower), upper = as.numeric(bounds$upper))
+        den_x <- seq( mu[i] - pi,  mu[i] + pi, 0.01)
+        den_y <- dfunc(den_x, mu[i], sigma[i,i], ... )
+        # Scale it
+        den_y <- den_y / (2.25*max(den_y) )
+        
         # Create circular density from data
-        circDensity <- list(data = data, x = circular(den_x),
+        circDensity <- list(data = data[,i], x = circular(den_x),
                             y = den_y, bw = 1, N = 0, call = nrow(data),
                             data.name = "", has.na = F)
         class(circDensity) <- "density.circular"
