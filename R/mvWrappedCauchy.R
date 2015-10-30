@@ -31,6 +31,7 @@ mvWrappedCauchy <- function(mu, sigma, ...){
   
   # Create list object
   obj <- list(
+    dim = length(mu),
     mu = mu,
     sigma = sigma)
   
@@ -300,16 +301,32 @@ dmvWrappedCauchy <- function(x, mu, sigma, k = 10, ...){
 #' @examples 
 #' samples <- rmvWrappedCauchy(1000, rep(pi,3), matrix( c(0.3,0.1,-0.1,0.1,0.3,0,-0.1,0,0.3), ncol = 3 , nrow = 3 )   )
 #' obj <- mvWrappedCauchy.fit(samples)
-#' plot(obj, data = obj$fitted.data )
+#' plot(obj, data = obj$fitted.data[1:100,] )
 #' 
 #' 
-#' @export
-plot.mvWrappedCauchy <- function(obj, data = NULL, n = 1000, ...){
-  
-  # If data is null and n != 0 we create n samples 
-  if ( is.null(data) && n > 0 )
-    data <- getSamples(obj, n)
-  
-  # call plot_circularMvVm auxiliar func
-  wrappedDist.plot( obj$mu, obj$sigma, data, circular::dwrappedcauchy)
+# plot.mvWrappedCauchy <- function(obj, data = NULL, n = 1000, ...){
+#   
+#   # If data is null and n != 0 we create n samples 
+#   if ( is.null(data) && n > 0 )
+#     data <- getSamples(obj, n)
+#   
+#   # call plot_circularMvVm auxiliar func
+#   wrappedDist.plot( obj$mu, obj$sigma, data, circular::dwrappedcauchy)
+# }
+
+
+circMarginal.mvWrappedCauchy <- function(obj, x, i){
+  return( circular::dwrappedcauchy(x,obj$mu[i], obj$sigma[i,i] ) )
+}
+
+circMarginalMean.mvWrappedCauchy <- function(obj , i){
+  return( obj$mu[i] )
+}
+
+circMarginalConcentration.mvWrappedCauchy <- function(obj, i){
+  return( obj$sigma[i,i] )
+}
+
+circCor.mvWrappedCauchy <- function(obj, i, j){
+  return( obj$sigma[i, j] )
 }

@@ -9,6 +9,7 @@
  **/
 
 #include <stdlib.h>
+#include <string.h>
 #include <float.h>
 #include <math.h>
 #include "circularDistance.h"
@@ -29,7 +30,7 @@
  *
  * @returns p-dimensional vector with computed median
 */
-void circularGeometricMedian(int n, int p, double *angles, double eps, int maxiter, char* maxiter_flag, double *median){
+void circularGeometricMedian(int n, int p, double *angles, double eps, int maxiter, int* maxiter_flag, double *median){
 
     // Auxiliar memory
     double *last = calloc(sizeof(double),p);
@@ -46,6 +47,10 @@ void circularGeometricMedian(int n, int p, double *angles, double eps, int maxit
 
     // EPS control
     double improv = DBL_MAX ;
+    
+    // To add complex numbers
+    double *aux_cos = calloc(sizeof(double), 2*p);
+    double *aux_sin = aux_cos + p;
 
     // Weisfelz iterative algorithm
     iter=0;
@@ -54,38 +59,45 @@ void circularGeometricMedian(int n, int p, double *angles, double eps, int maxit
         iter++;
         // reset Aggregate
         aggr=0;
+        
         // Copy current to last
         memcpy(last,median,sizeof(double)*p);
+        
         // Reset current
-        memset(median,0,sizeof(double)*p);
+        memset(aux_cos,0,sizeof(double)*p);
+        memset(aux_sin,0,sizeof(double)*p);
+        
         // Sample by sample
         for(i=0;i<n;i++){
-
             // Candidate to sample dist
-            auxDist = circularMvDistance(p,last,angles+(i*p));
+            auxDist = circularMvDistance(p, last, angles + (i*p) );
             if(auxDist!=0){
-                aggr+=1/auxDist;
-                // Update current
-                for(j=0;j<p;j++) median[j] += angles[(i*p)+j]/auxDist;
+                aggr += 1/auxDist;
+                
+                // Update 
+                for(j=0;j<p;j++) {
+                  aux_cos[j] += cos(angles[(i * p) + j])/auxDist;
+                  aux_sin[j] += sin(angles[(i * p) + j])/auxDist;
+                }
             }
         }
 
-        // aggr div
+        // Normalize and compute median
         for(j=0;j<p;j++) {
-            median[j] /= aggr;
-            median[j]=fmod(median[j],2*M_PI);
+            aux_cos[j] /= aggr;
+            aux_sin[j] /= aggr;
+            median[j] = atan2(aux_sin[j], aux_cos[j]);
         }
 
         // Compute eps
-        improv = circularMvDistance(p,last,median);
+        improv = circularMvDistance(p, last, median);
     }
 
     // Free last and return current
-    free(last);
+    free(last); free(aux_cos);
     if(maxiter_flag!=NULL) *maxiter_flag = maxiter>iter;
-    return(median);
 }
 
 void _R__circularGeometricMedian(int *n, int *p, double *angles, double *eps, int *maxiter, int* maxiter_flag, double *median){
-    circularGeometricMedian(*n,*p, angles, *eps, *maxiter, *maxiter_flag, median);
+    circularGeometricMedian(*n,*p, angles, *eps, *maxiter, maxiter_flag, median);
 }

@@ -36,6 +36,7 @@ mvVonMises <- function(mu, kappa, lambda, ...){
   
   # Create list object
   obj <- list(
+    dim = length(mu),
     mu = mu,
     kappa = kappa,
     lambda = lambda,
@@ -200,21 +201,32 @@ rmvVonMises <- function(n, mu, kappa, lambda, ...){
 #' dmvVonMises(c(0,0,0),rep(0,3), rep(1,3), matrix(0,ncol=3,nrow=3) )
 #' 
 #' @export
-fval.mvVonMises <- function(obj, x ) {
+fval.mvVonMises <- function(obj, x, ... ) {
   
   # Validate inputs
-  if (!is.numeric(x) || length(x) != length(obj$mu)) stop("")
+  # Validate inputs
+  if ( (is.matrix(x) || is.data.frame(x) ) ) {
+    if (ncol(x) != length(obj$mu))  stop("")
+  }
+  else if (is.numeric(x)) {
+    if ( length(x) != length(obj$mu) ) stop("")
+    else x <- matrix(x,nrow = 1)
+  }
+  else stop("")
   
   # Compute unormalized value
-  aux <- (x - obj$mu)
-  val <- exp(as.numeric( crossprod(obj$kappa,cos(aux)) + 
-                           0.5 * (sin(aux) %*% obj$lambda %*% sin(aux)) ))
+  aux <- as.matrix(sweep(x,2,obj$mu)) # (x-mu) to each point
+  
+  # Get values
+  val <- exp( as.numeric(tcrossprod(obj$kappa,cos(aux) )) 
+              +  Matrix::rowSums(0.5 * ((sin(aux) %*% obj$lambda ) * sin(aux))) )
+  
   if ( is.null(obj$z) ) {
     warning("Returning unnormalized value")
-    return(val)
+    return( as.numeric(val) )
   }
   else{
-    return(val/obj$z)
+    return(  as.numeric(val)/obj$z)
   }
 }
 
@@ -245,16 +257,32 @@ dmvVonMises <- function(x, mu, kappa, lambda, normalization.samples = 1E6){
 #' 
 #' @examples 
 #' samples <- rmvVonMises(1E5, rep(0,4), rep(1,4), matrix(0,ncol=4,nrow=4) )
-#' obj.fitted <- mvVonMises.fit(samples)
-#' plot(obj, data = obj$fitted.data)
+#' obj <- mvVonMises.fit(samples)
+#' plot(obj, data = obj$fitted.data[1:100,])
 #' 
-#' @export
-plot.mvVonMises <- function(obj, data = NULL, n = 1000, ...){
-  
-  # If data is null and n != 0 we create n samples 
-  if ( is.null(data) && n > 0 )
-    data <- getSamples(obj, n)
-  
-  # call plot_circularMvVm auxiliar func
-  circularMvVm.plot( obj$mu, obj$kappa, obj$lambda, data, ...)
+#' 
+# plot.mvVonMises <- function(obj, data = NULL, n = 1000, ...){
+#   
+#   # If data is null and n != 0 we create n samples 
+#   if ( is.null(data) && n > 0 )
+#     data <- getSamples(obj, n)
+#   
+#   # call plot_circularMvVm auxiliar func
+#   circularMvVm.plot( obj$mu, obj$kappa, obj$lambda, data, ...)
+# }
+
+circMarginal.mvVonMises <- function(obj, x, i){
+  return( circular::dvonmises(x,obj$mu[i], obj$kappa[i] ) )
+}
+
+circMarginalMean.mvVonMises <- function(obj , i){
+  return( obj$mu[i] )
+}
+
+circMarginalConcentration.mvVonMises <- function(obj, i){
+  return( obj$kappa[i] )
+}
+
+circCor.mvVonMises <- function(obj, i, j){
+  return( obj$lambda[i, j] )
 }

@@ -15,7 +15,7 @@
 #' @examples 
 #' geomedian.circular( rmvVonMises(1000,rep(0,3),rep(1,3),matrix(0,nrow=3,ncol=3)) )
 #' 
-geomedian.circular <- function(data, tol = 1E-6, maxiter = 1E5) {
+geomedian.circular <- function(data, tol = 1E-3, maxiter = 1E5) {
   
   
   if ( !is.mvCircular(data)) stop("All columns musth be circular")
