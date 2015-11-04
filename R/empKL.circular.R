@@ -8,6 +8,7 @@
 #' @param n If \code{a} is a probability, the number of samples from \code{a} to be used in the KL approximation
 #' @param m If \code{b} is a probability, the number of samples from \code{b} to be used in the KL approximation
 #' @param k The KL approximation is computed w.r.t. the distance to the \code{k}-th nearest neighbour of each sample
+#' @param \dots Additional parameters for \code{\link{getSamples}}
 #'
 #' @export
 #' @useDynLib mvCircular
@@ -20,7 +21,7 @@
 #' div$kl
 #' div <- empKL.circular(a,c)
 #' div$kl
-empKL.circular <- function(a, b, n = nrow(a), m = nrow(b), k = 2){
+empKL.circular <- function(a, b, n = nrow(a), m = nrow(b), k = 2, ...){
   
   # A can be a probability distribution
   if (inherits(a,PROBDIST_CLASS)) {

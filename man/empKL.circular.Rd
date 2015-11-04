@@ -4,7 +4,7 @@
 \alias{empKL.circular}
 \title{Empiric KL divergence}
 \usage{
-empKL.circular(a, b, n = nrow(a), m = nrow(b), k = 2)
+empKL.circular(a, b, n = nrow(a), m = nrow(b), k = 2, ...)
 }
 \arguments{
 \item{a}{Either a circular multivariate probability or a multivariate circular dataframe}
@@ -16,6 +16,8 @@ empKL.circular(a, b, n = nrow(a), m = nrow(b), k = 2)
 \item{m}{If \code{b} is a probability, the number of samples from \code{b} to be used in the KL approximation}
 
 \item{k}{The KL approximation is computed w.r.t. the distance to the \code{k}-th nearest neighbour of each sample}
+
+\item{\dots}{Additional parameters for \code{\link{getSamples}}}
 }
 \description{
 Calculates a KL divergence approximation using distribution samples
