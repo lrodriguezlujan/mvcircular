@@ -145,7 +145,6 @@ torusPlot <- function(obj, ...){
 #' @rdname mvCircularProbDist
 #' 
 #' @param npoints Number of points to evaluate
-#' @param color If true, instead of level lines contours are filled
 #' @param \dots (\code{torusPlot}) Additional params for \code{feval}
 #' 
 #' @examples
@@ -154,7 +153,7 @@ torusPlot <- function(obj, ...){
 #'  torusPlot(obj)
 #'  
 #'  @export
-torusPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T,  ...) {
+torusPlot.mvCircularProbDist <- function(obj,  npoints = 1E4,  ...) {
   
   if ( obj$dim != 2 ) stop("Contour plot only works for 2-d distributions")
   
