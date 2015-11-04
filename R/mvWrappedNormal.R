@@ -91,7 +91,7 @@ mvWrappedNormal.fit <- function(samples, zero.threshold = 1E-2, ...){
   samples.complex.mean <- unlist(lapply(samples.complex, function(x){ mean(x) } ))
   
   # Mean vector
-  mu <- Arg( samples.complex.mean )
+  mu <- Arg( samples.complex.mean ) %% (2*pi)
   
   # Sigma diagonal elements
   diag(sigma) <- -2 * log( Mod( samples.complex.mean ) )
