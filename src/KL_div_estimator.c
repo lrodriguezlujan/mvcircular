@@ -162,7 +162,8 @@ double KL_estimator_circulardist(        int p,
         // Compute sum
         acum+=log(s_k/r_k);
     }
-    return ((1.0*p)/n) * acum + log(m/(n-1.0));
+    // Just in case
+    return fabs(((1.0*p)/n) * acum + log(m/(n-1.0)));
 }
 
 /**
