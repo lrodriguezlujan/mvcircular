@@ -6,7 +6,7 @@ Date: 2015-10-30
 Author: Luis Rodriguez-Lujan
 Maintainer: Luis Rodriguez-Lujan <luis.rodriguezl@upm.es>
 Description: Multivariate circular statistics package, includes von Mises, wrapped distributions, plots, etc
-License: GPL (>= 2)
+License: BSD-3
 Depends:
     circular (>= 0.4.7)
 Imports:
