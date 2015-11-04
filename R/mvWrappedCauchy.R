@@ -43,14 +43,11 @@ mvWrappedCauchy <- function(mu, sigma, ...){
   else if (nrow(sigma) != ncol(sigma)) {stop("sigma is not a square matrix")}
   
   # Create base object
-  obj <- mvCircularProbDist( length(mu) )
+  obj <- mvCircularProbDist( length(mu), ... )
   
   # Create list object
   obj$mu <- mu
-  obj$simga <- sigma
-  
-  ## Add additional params
-  obj <- c(obj, list(...))
+  obj$sigma <- sigma
   
   # Add claseses (probdist + vonmises)
   class(obj) <- append( class(obj), MVWRAPPEDCAUCHY_CLASS)
@@ -69,11 +66,11 @@ mvWrappedCauchy <- function(mu, sigma, ...){
 #' @importFrom  Matrix nearPD
 #' 
 #' @examples 
-#' samples <- rmvWrappedCauchy(1E6, rep(pi,3), matrix( c(0.3,.1,-.1,.1,.3,0,-.1,.0,.3), ncol = 3 , nrow = 3 )   )
+#' samples <- rmvWrappedCauchy(1E5, rep(pi,3), matrix( c(0.3,.1,-.1,.1,.3,0,-.1,.0,.3), ncol = 3 , nrow = 3 )   )
 #' obj <-mvWrappedCauchy.fit(samples)
 #' sum(abs(obj$mu - rep(pi,3)))
-#' sum(abs(obj$sigma - matrix( c(3,1,-1,1,3,0,-1,0,3), ncol = 3 , nrow = 3 ) ))
-#' plot(obj)
+#' sum(abs(obj$sigma - matrix( c(0.3,.1,-.1,.1,.3,0,-.1,.0,.3), ncol = 3 , nrow = 3 ) ))
+#' plot(obj, data = obj$fitted.data[1:1000,])
 #'
 #' @rdname mvWrappedCauchy 
 #' @export
@@ -295,9 +292,10 @@ fval.mvWrappedCauchy <- function(obj, x, k = 10 ) {
 }
 
 #' @importFrom circular dwrappedcauchy
+#' @importFrom MASS ginv
 #' @rdname mvWrappedCauchy
 circMarginal.mvWrappedCauchy <- function(obj, x, i){
-  return( circular::dwrappedcauchy(x,obj$mu[i], obj$sigma[i,i] ) )
+  return( circular::dwrappedcauchy(x,obj$mu[i], exp(((obj$sigma)[i,i]) ^ 2 * -2 ) ) )
 }
 
 #' @rdname mvWrappedCauchy
@@ -305,12 +303,14 @@ circMarginalMean.mvWrappedCauchy <- function(obj , i){
   return( obj$mu[i] )
 }
 
+#' @importFrom MASS ginv
 #' @rdname mvWrappedCauchy
 circMarginalConcentration.mvWrappedCauchy <- function(obj, i){
-  return( obj$sigma[i,i] )
+  return( exp(((obj$sigma)[i,i]) ^ 2 * -2 ) )
 }
 
+#' @importFrom MASS ginv
 #' @rdname mvWrappedCauchy
 circCor.mvWrappedCauchy <- function(obj, i, j){
-  return( obj$sigma[i, j] )
+  return( MASS::ginv(obj$sigma)[i, j] )
 }

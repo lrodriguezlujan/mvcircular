@@ -15,13 +15,16 @@ NULL
 PROBDIST_CLASS <- "mvCircularProbDist"
 
 #' @param dim  Number of variables
+#' @param \dots (\code{mvCircularProbDist}) Named list with aditional parameters to include in the object
 #' 
 #' @export
-mvCircularProbDist <- function(dim){
+mvCircularProbDist <- function(dim, ... ){
   
   ret <- list(
     dim = dim
   )
+  ret <- c(ret, list(...))
+  
   class(ret) <- PROBDIST_CLASS
   
   return(ret)

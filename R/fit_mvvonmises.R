@@ -15,7 +15,7 @@
 #' @param retry Number of retries (Convergence can fail sometimes)
 #' @param type Wheter to use optimized expresion or regular
 #'
-#' @return List with mu, kappa and lambda parameters, data samples and loss function value. If method didnt reach convergence loss will be NA
+#' @return List with mu, kappa and lambda parameters, data samples and loss function value. If method don't reach convergence loss will be NA
 #' 
 #' @useDynLib mvCircular
 #'

@@ -2,6 +2,12 @@
 #'
 #' Calculates a KL divergence approximation using distribution samples
 #' and a simplified circular distance
+#' 
+#' @param a Either a circular multivariate probability or a multivariate circular dataframe
+#' @param b Either b circular multivariate probability or b multivariate circular dataframe
+#' @param n If \code{a} is a probability, the number of samples from \code{a} to be used in the KL approximation
+#' @param m If \code{b} is a probability, the number of samples from \code{b} to be used in the KL approximation
+#' @param k The KL approximation is computed w.r.t. the distance to the \code{k}-th nearest neighbour of each sample
 #'
 #' @export
 #' @useDynLib mvCircular
@@ -14,10 +20,10 @@
 #' div$kl
 #' div <- empKL.circular(a,c)
 #' div$kl
-empKL.circular <- function(a, b, n = nrow(a), m = nrow(b), k = 2, ...){
+empKL.circular <- function(a, b, n = nrow(a), m = nrow(b), k = 2){
   
   # A can be a probability distribution
-  if (inherits(a,"probDist")) {
+  if (inherits(a,PROBDIST_CLASS)) {
     if (missing(n))
       stop("Needed number of samples to generate")
     else
@@ -29,7 +35,7 @@ empKL.circular <- function(a, b, n = nrow(a), m = nrow(b), k = 2, ...){
     stop("")
   
   # Likewise for b
-  if ( "probDist" %in% class(b) ) {
+  if (inherits(b,PROBDIST_CLASS)) {
     if (missing(m))
       stop("Number of samples to generate should be given")
     else

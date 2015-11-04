@@ -44,14 +44,11 @@ mvWrappedNormal <- function(mu, sigma, ...){
   else if (nrow(sigma) != ncol(sigma)) {stop("sigma is not a square matrix")}
   
   # Create base object
-  obj <- mvCircularProbDist( length(mu) )
+  obj <- mvCircularProbDist( length(mu), ... )
   
   # Create list object
   obj$mu <- mu
-  obj$simga <- sigma
-  
-  ## Add additional params
-  obj <- c(obj, list(...))
+  obj$sigma <- sigma
   
   # Add claseses (probdist + vonmises)
   class(obj) <- append( class(obj), MVWRAPPEDNORMAL_CLASS)
@@ -74,7 +71,7 @@ mvWrappedNormal <- function(mu, sigma, ...){
 #' obj <- mvWrappedNormal.fit(samples)
 #' sum(abs(obj$mu - rep(pi,3)))
 #' sum(abs(obj$sigma - matrix( c(3,1,-1,1,3,0,-1,0,3), ncol = 3 , nrow = 3 ) ))
-#' plot(obj)
+#' plot(obj, obj$fitted.data )
 #' 
 #' @rdname mvWrappedNormal
 #' @export
@@ -254,7 +251,7 @@ fval.mvWrappedNormal <- function(obj, x, k = 10, ... ) {
 #'@importFrom circular dwrappednormal
 #'@rdname mvWrappedNormal
 circMarginal.mvWrappedNormal <- function(obj, x, i){
-  return( circular::dwrappednormal(x,obj$mu[i], obj$sigma[i,i] ) )
+  return( circular::dwrappednormal(x,obj$mu[i], sd = obj$sigma[i,i] ) )
 }
 
 #'@rdname mvWrappedNormal
@@ -264,10 +261,11 @@ circMarginalMean.mvWrappedNormal <- function(obj , i){
 
 #'@rdname mvWrappedNormal
 circMarginalConcentration.mvWrappedNormal <- function(obj, i){
-  return( obj$sigma[i,i] )
+  return( exp(((obj$sigma)[i,i]) ^ 2 / -2 ) )
 }
 
+#'@importFrom MASS ginv
 #'@rdname mvWrappedNormal
 circCor.mvWrappedNormal <- function(obj, i, j){
-  return( obj$sigma[i, j] )
+  return( MASS::ginv(obj$sigma)[i,j] )
 }

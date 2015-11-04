@@ -47,16 +47,13 @@ mvVonMises <- function(mu, kappa, lambda, ...){
   else if (nrow(lambda) != ncol(lambda)) {stop("Lambda is not a square matrix")}
   
   # Create base object
-  obj <- mvCircularProbDist( length(mu) )
+  obj <- mvCircularProbDist( length(mu) , ...  )
   
   # Add params
   obj$mu <- mu
   obj$kappa <- kappa
   obj$lambda <- lambda
-  
-  ## Add additional params
-  obj <- c(obj, list(...))
-  
+
   # Add claseses (probdist + vonmises)
   class(obj) <- append( class(obj), MVVONMISES_CLASS)
   
@@ -78,9 +75,10 @@ mvVonMises <- function(mu, kappa, lambda, ...){
 #' @examples 
 #' samples <- rmvVonMises(1E5, rep(0,4), rep(1,4), matrix(0,ncol=4,nrow=4) )
 #' obj.fitted <- mvVonMises.fit(samples)
-#' plot(obj, data = obj$fitted.data)
+#' plot(obj.fitted, data = obj.fitted$fitted.data[1:1000,])
 #' 
 #' @rdname mvVonMises
+#' @export
 mvVonMises.fit <- function(samples, zero.threshold = 1E-2, ...){
   
   # Call fit_mvvonmises
@@ -110,6 +108,7 @@ mvVonMises.fit <- function(samples, zero.threshold = 1E-2, ...){
 #' @importFrom circular circular
 #' 
 #' @rdname mvVonMises
+#' @export
 rmvVonMises <- function(n, mu, kappa, lambda, ...){
   
   # Check n
@@ -139,6 +138,7 @@ rmvVonMises <- function(n, mu, kappa, lambda, ...){
 #' @importFrom Matrix rowSums
 #' 
 #' @rdname mvVonMises
+#' @export
 dmvVonMises <- function(x, mu, kappa, lambda, z = NULL){
 
   # Validate inputs
@@ -182,6 +182,7 @@ dmvVonMises <- function(x, mu, kappa, lambda, z = NULL){
 #' obj$z
 #' 
 #' @rdname mvVonMises
+#' @export
 normalize.mvVonMises <- function(obj, normalization.samples = 1E6 ) {
   
   # Compute normalization term
@@ -223,6 +224,7 @@ normalize.mvVonMises <- function(obj, normalization.samples = 1E6 ) {
 #' plot(getSamples(obj,100))
 #' 
 #' @rdname mvVonMises
+#' @export
 getSamples.mvVonMises <- function(obj, n, ...) {
   
   # Check obj
@@ -235,31 +237,37 @@ getSamples.mvVonMises <- function(obj, n, ...) {
 #' # Compute normalization term
 #' obj <- normalize(obj, normalization.samples = 1E6)
 #' fval(obj, c(0,0,0))
+#' # unnormalzied value
 #' dmvVonMises(c(0,0,0),rep(0,3), rep(1,3), matrix(0,ncol=3,nrow=3) )
 #' 
 #' @rdname mvVonMises
+#' @export
 fval.mvVonMises <- function(obj, x, ... ) {
   if ( !inherits(obj, MVVONMISES_CLASS) ) stop("Object should be a von Mises multivariate distribution")
-  return( dmvVonMises(x, obj$mu, obj$kapa, obj$lambda, obj$z) )
+  return( dmvVonMises(x, obj$mu, obj$kappa, obj$lambda, obj$z) )
 }
 
 #' @importFrom circular dvonmises
 #' @rdname mvVonMises
+#' @export
 circMarginal.mvVonMises <- function(obj, x, i){
   return( circular::dvonmises(x,obj$mu[i], obj$kappa[i] ) )
 }
 
 #' @rdname mvVonMises
+#' @export
 circMarginalMean.mvVonMises <- function(obj , i){
   return( obj$mu[i] )
 }
 
 #' @rdname mvVonMises
+#' @export
 circMarginalConcentration.mvVonMises <- function(obj, i){
   return( obj$kappa[i] )
 }
 
 #' @rdname mvVonMises
+#' @export
 circCor.mvVonMises <- function(obj, i, j){
   return( obj$lambda[i, j] )
 }
