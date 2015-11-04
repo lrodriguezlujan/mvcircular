@@ -1,87 +1,157 @@
-PROBDIST_CLASS <- "mvCircularProbDist"
-#' genProbDist Methods
+#' @name mvCircularProbDist
+#' @rdname mvCircularProbDist
+#' @title Multivariate circular distribution
 #' 
+#' Generic defnition for a multivariate ciruclar distribution
+#' 
+#' @author Luis Rodriguez Lujan 
+#' 
+#' @keywords multivariate circular
+#' 
+#' @export
+NULL
 
-#'x
-#'
+# Class name
+PROBDIST_CLASS <- "mvCircularProbDist"
+
+#' @param dim  Number of variables
+#' 
+#' @export
+mvCircularProbDist <- function(dim){
+  
+  ret <- list(
+    dim = dim
+  )
+  class(ret) <- PROBDIST_CLASS
+  
+  return(ret)
+}
+
+#' @return \code{getSamples} returns a circular dataframe with n samples from the given circular distribution
+#' 
+#' @param obj A multivariate circular distribution object
+#' @param n The number of samples to return
+#' 
+#' @rdname mvCircularProbDist
+#' 
 #' @export
 getSamples <- function(obj, n, ...){
   UseMethod("getSamples", obj)
 }
 
-#'x
+#' @param x A circular point (p-vector)
+#' 
+#' @return \code{fval} evaluates the density function in the point \code{x}
+#'
+#' @rdname mvCircularProbDist
 #'
 #' @export
 fval <- function(obj, x, ...){
   UseMethod("fval", obj)
 }
 
-#'x
 #'
+#' @return \code{Fval} returns the cumulative distribution function in the point \code{x}
+#' 
+#' @rdname mvCircularProbDist
+#' 
 #' @export
 Fval <- function(obj, x, ...){
   UseMethod("Fval", obj)
 }
 
-#'x
 #'
-#'@export
+#' @return \code{normalize} returns the object with the normalization term set
+#' 
+#' @rdname mvCircularProbDist
+#' 
+#' @export
 normalize <- function(obj, ...){
   UseMethod("normalize",obj)
 }
 
-#'x
+# Default behaviour: No normalization
+normalize.default <- function(obj){
+  return(obj)
+}
+
+
+#' @param i Component index
+#' 
+#' @return \code{circMarginal} returns the \code{i}-th compontent marginal density function evaluated at \code{x}
 #'
-#'@export
+#' @rdname mvCircularProbDist
+#'
+#' @export
 circMarginal <- function(obj, x, i, ...){
   UseMethod("circMarginal",obj)
 }
 
-#'x
+#' @rdname mvCircularProbDist
+#' 
+#' @param j Component index
 #'
-#'@export
+#' @return \code{circCor} returns the dependency between \code{i}-th and \code{j}-th compontents
+#' @export
 circCor <- function(obj, i, j, ...){
   UseMethod("circCor",obj)
 }
 
-#'x
-#'
-#'@export
+#' @rdname mvCircularProbDist
+#' 
+#' @return \code{circMarginalMean} returns the marginal mean of the \code{i}-th compontent
+#' 
+#' @export
 circMarginalMean <- function(obj, i, ...){
   UseMethod("circMarginalMean",obj)
 }
 
-#'x
 #'
-#'@export
+#' 
+#' @return \code{circMarginalConcentration} returns the marginal concentration of the \code{i}-th compontent
+#' 
+#' @rdname mvCircularProbDist
+#' 
+#' @export
 circMarginalConcentration <- function(obj, i, ...){
   UseMethod("circMarginalConcentration",obj)
 }
-
-#'x
+ 
+#' \code{contourPlot} creates a 2D plot where the level based on on the density function value. 
+#' Only available for bivariate distributions
+#' 
+#' @rdname mvCircularProbDist
 #'
-#'@export
+#' @export
 contourPlot <- function(obj, ...){
   UseMethod("contourPlot",obj)
 }
 
-#'x
+
+#' 
+#' \code{torusPlot} creates a 3D interactive plot using \link{threejs} library. The surface of a torus is coloured
+#' based on the density function value. Only available for bivariate distributions
 #'
-#'@export
+#' @rdname mvCircularProbDist
+#'
+#' @export
 torusPlot <- function(obj, ...){
   UseMethod("torusPlot",obj)
 }
 
-
-#' Plot Bivariate 3D torus
-#'
-#'@examples
+#' @rdname mvCircularProbDist
+#' 
+#' @param npoints Number of points to evaluate
+#' @param color If true, instead of level lines contours are filled
+#' @param \dots (\code{torusPlot}) Additional params for \code{feval}
+#' 
+#' @examples
 #'  obj <- mvVonMises(c(3*pi/2, pi/2), rep(1.5,2), matrix( c(0,2,2,0) ,ncol=2,nrow=2) )
 #'  obj <- normalize(obj)
 #'  torusPlot(obj)
 #'  
-#'@export
-torusPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T, k = 4, ...) {
+#'  @export
+torusPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T,  ...) {
   
   if ( obj$dim != 2 ) stop("Contour plot only works for 2-d distributions")
   
@@ -93,7 +163,7 @@ torusPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T, k = 4, 
   # Since 2pi == 0 we create  n+1 samples per dim and remove the last one (2pi) to avoid double-evaluating the same point
   dimvals <- sort(seq(from = 0, to = 2*pi, length.out = (samplesPerDim + 1))[-(samplesPerDim + 1)] )
   points  <- expand.grid( split(rep(dimvals, each = dims),1:dims) )
-  z <- fval(obj, points, k)
+  z <- fval(obj, points, ...)
   
   # Create colorscale
   colorscale <- threejs::colorscaleThreeJS(max = max(z), min = min(z), legend.on = T, legend.labels.on = T, 
@@ -127,15 +197,16 @@ torusPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T, k = 4, 
   threejs::composition( objects = obj , lights = light, helpers = helpers, colorscale = colorscale)
 }
 
-
-#' Plot Bivariate contour
+#' @rdname mvCircularProbDist
+#' 
+#'  @param \dots (contourPlot) Additional parameters for \code{\link{contour}} or \code{\link{filled.contour}}
 #'
-#'@examples
+#' @examples
 #'  obj <- mvVonMises(c(3*pi/2, pi/2), rep(1.5,2), matrix( c(0,2,2,0) ,ncol=2,nrow=2) )
 #'  obj <- normalize(obj)
 #'  contourPlot(obj)
 #'  
-#'@export
+#'  @export
 contourPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T, k = 4, ...) {
   
   if ( obj$dim != 2 ) stop("Contour plot only works for 2-d distributions")
@@ -157,21 +228,24 @@ contourPlot.mvCircularProbDist <- function(obj,  npoints = 1E4, color = T, k = 4
   
 }
 
-#'Plot multivariate circular distribution
 #'
-#' @param obj
-#' @param data
-#' @param ...
-#' @param colors
-#' @param cex.params
-#' @param rose.bins
-#' @param cex.sigma
-#' @param pch
+#' @rdname mvCircularProbDist
+#'
+#' @param data Data to plot in the lower triagonal segment. Usually data used for fitting.
+#' @param \dots (plot) Additional arguments for \link{circMarginal}
+#' @param color Plot main color 
+#' @param cex.params Parameters font size
+#' @param rose.bins Number of bins in the rose plot
+#' @param cex.sigma Upper triangular dep. font size
+#' @param pch Point character to use in the 2D plots
 #' 
-#' @importFrom MASS ginv
 #' @importFrom circular rose.diag
 #' 
-#'@export
+#' @examples
+#'  obj <- mvVonMises(c(3*pi/2, pi/2, 0, 0), c(1.5,2,1,5), matrix( c(0,2,-1,0, 2,0,1,0, -1,1,0,1, 0,0,1,0) ,ncol=4,nrow=4) )
+#'  plot(obj)
+#' 
+#' @export
 plot.mvCircularProbDist <- function(obj, data = NULL, n = 100 ,
                              ...,
                              color = "red",

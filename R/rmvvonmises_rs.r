@@ -6,6 +6,8 @@
 #'@export
 #'@useDynLib mvCircular
 #'
+#' @importFrom bit64 as.integer64
+#'
 #'@examples
 #'rmvvonmises_rs(100,rep(0,3),rep(1,3),matrix(rep(0,9),nrow=3,ncol=3))
 rmvvonmises_rs <- function(n,
@@ -35,7 +37,7 @@ rmvvonmises_rs <- function(n,
     stop("Parameter length do not match")
   else if(nrow(lambda)!=ncol(lambda))
     stop("Lambda is not a square matrix")
-  else if(!is.symmetric.matrix(lambda))
+  else if( any(t(lambda) != lambda) )
     warning("Lambda is not symmetric")
   
   # Check for rejection (auto with low dim or selected)
@@ -62,7 +64,7 @@ rmvvonmises_rs <- function(n,
                 kappa = as.double(kappa),
                 lambda = as.double(lambda),
                 lmin = lmin,
-                seeds = as.integer64(seed),
+                seeds = bit64::as.integer64(seed),
                 ret = double(n*p),
                 errno = integer(1),
                 PACKAGE="mvCircular")
@@ -126,7 +128,7 @@ rmvvonmises_rs <- function(n,
                 alphaTable = as.integer(alphaArray),
                 thinning = as.integer(burnin_iters + 1),
                 theta = as.double(x),
-                seeds = as.integer64(seed),
+                seeds = bit64::as.integer64(seed),
                 ret = double(p),
                 errno = integer(1),
                 PACKAGE="mvCircular")

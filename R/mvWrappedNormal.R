@@ -1,17 +1,31 @@
+#' @name mvWrappedNormal
+#' @rdname mvWrappedNormal
+#' @title Multivariate wrapped normal distribution
+#' 
+#' @description 
+#' These functions implement diverse functionality over the 
+#' multivariate wrapped normal distribution given its parameters mu, the circular mean vector,
+#' and sigma, the variance covariance matrix.
+#' 
+#' @author Luis Rodriguez Lujan 
+#' 
+#' @keywords multivariate normal wrapped
+#' 
+#' @seealso \code{\link{mvCircularProbDist}}
+#' @export
+NULL
+
 MVWRAPPEDNORMAL_CLASS <- "mvWrappedNormal"
 
-#' Multivariate Wrapped normal distribution
-#' 
-#' Creates a multivariate wrapped normal object
-#' 
-#' 
+
 #' @param mu Circular mean vector
 #' @param sigma a positive-definite symmetric matrix that specifies covariance matrix
-#' 
-#' @return a Multivariate wrapped normal S3 object
+#' @param \dots (Constructor) Named list with additional attributes to add to the object
 #' 
 #' @examples 
 #' mvWrappedNormal(rep(0,3), diag(3) )
+#' 
+#' @importFrom circular is.circular conversion.circular as.circular
 #' 
 #' @export
 mvWrappedNormal <- function(mu, sigma, ...){
@@ -29,29 +43,31 @@ mvWrappedNormal <- function(mu, sigma, ...){
   else if (length(mu) != nrow(sigma) ) {stop("Parameters length do not match")}
   else if (nrow(sigma) != ncol(sigma)) {stop("sigma is not a square matrix")}
   
+  # Create base object
+  obj <- mvCircularProbDist( length(mu) )
+  
   # Create list object
-  obj <- list(
-    dim = length(mu),
-    mu = mu,
-    sigma = sigma)
+  obj$mu <- mu
+  obj$simga <- sigma
   
   ## Add additional params
   obj <- c(obj, list(...))
   
   # Add claseses (probdist + vonmises)
-  class(obj) <- c(PROBDIST_CLASS, MVWRAPPEDNORMAL_CLASS)
+  class(obj) <- append( class(obj), MVWRAPPEDNORMAL_CLASS)
   
   return(obj)
 }
 
 
-#' Fit wrapped normal distribution
+#' Fit method uses data matrix or dataframe \code{samples} to compute the ML parameters of the distribution
 #' 
-#' This method uses data matrix or dataframe \code{samples} to compute the ML parameters of the distribution
+#' @param samples Matrix or DF with multivariate circular samples
+#' @param zero.threshold Any sigma value that verifies that \code{abs(x) < zero.threshold } is returned as zero
 #' 
-#' @param samples Matrix or DF with mv circular samples
+#' @return \code{mvWrappedNormal} returns a mvWrappedNormal object
 #' 
-#' @return A mvWrappedNormal object
+#' @importFrom  Matrix nearPD
 #' 
 #' @examples 
 #' samples <- rmvWrappedNormal(100000, rep(pi,3), matrix( c(3,1,-1,1,3,0,-1,0,3), ncol = 3 , nrow = 3 )   )
@@ -60,6 +76,7 @@ mvWrappedNormal <- function(mu, sigma, ...){
 #' sum(abs(obj$sigma - matrix( c(3,1,-1,1,3,0,-1,0,3), ncol = 3 , nrow = 3 ) ))
 #' plot(obj)
 #' 
+#' @rdname mvWrappedNormal
 #' @export
 mvWrappedNormal.fit <- function(samples, zero.threshold = 1E-2, ...){
   
@@ -110,88 +127,63 @@ mvWrappedNormal.fit <- function(samples, zero.threshold = 1E-2, ...){
   return( mvWrappedNormal(mu, sigma, fitted.data = samples) )
 }
 
-#' Multivariate wrapped normals sampler
-#'
-#' Samples n instances from the multivariate wrapped normal
-#'
-#' @param obj Multivariate wrapped normal
-#' @param n Number of samples to generate
-#' @param ... Additional parameters for \link{mvtnorm::rmvnorm}
-#' 
-#' @return A circular dataframe
-#' 
-#' @importFrom mvtnorm rmvnorm
-#' 
-#' @examples 
-#' obj <- mvWrappedNormal(rep(pi,2), diag(2) )
-#' samples <- getSamples(obj,100)
-#' plot(as.numeric(samples[,1]), as.numeric(samples[,2]) )
-#' 
-#' @export
-getSamples.mvWrappedNormal <- function(obj, n, ...) {
-  
-  # Check n
-  if ( !is.numeric(n) || n <= 0 || floor(n) != n ) stop("The number of samples should be a positive integer")
-  
-  # Call sampler
-  res <- mvtnorm::rmvnorm(n, mean = obj$mu, sigma = obj$sigma, ...) %% (2*pi)
-  
-  # Retun mv df
-  return( as.mvCircular(res  ) )
-}
 
-#' ENGANCHAR A getSamples (ver doc S3)
+
+
 #' @param n Number of samples to generate
-#' @param mu Circular mean vector
-#' @param sigma
-#' @param ... Additional parameters for \see{mvtnorm::rmvnorm}
+#' @param ... (\code{rmvWrappedNormal}) Additional parameters for \code{\link{mvtnorm::rmvnorm} }
+#' 
+#' @return \code{rmvWrappedNormal} returns a multivariate circular dataframe with \code{n} 
+#' samples from a wrapped-normal distribution
 #' 
 #' @examples 
 #' samples <- rmvWrappedNormal(100, rep(pi,2), diag(2) )
 #' plot(as.numeric(samples[,1]), as.numeric(samples[,2]) )
 #' 
+#' @rdname mvWrappedNormal
 #' @export
 rmvWrappedNormal <- function(n, mu, sigma, ...){
-  return( getSamples(mvWrappedNormal(mu, sigma), n, ...) )
+  
+  # Check n
+  if ( !is.numeric(n) || n <= 0 || floor(n) != n ) stop("The number of samples should be a positive integer")
+  
+  # Call sampler
+  res <- mvtnorm::rmvnorm(n, mean = mu, sigma = sigma, ...) %% (2*pi)
+  
+  # Retun mv df
+  return( as.mvCircular(res  ) )
 }
 
-#' Multivariate wrapped normal density function
+
+
+#' \code{dmvWrappedNormal} computes multivariate wrapped normal densitiy function approximately. The precission is controled by
+#' \code{k}, the number of points to evaluate per dimension. The total number of points will be  (k+1) ^ ndim (Z-lattice)
 #' 
-#' Computes multivariate wrapped normal densitiy function approximately. The precission is controled by
-#' k, the number of points to evaluate per dimension. The total number of points will be  (k+1) ^ ndim (Z-lattice)
-#' 
-#' @param obj A Multivariate wrapped normal object
 #' @param x The point to evaluate
-#' @param k Number of terms to be used per dimension
-#' @param ... Extra arguments for \link{mvtnorm::dmvnorm}
+#' @param k Number of points per dimension
+#' @param ...  (\code{dmvWrappedNormal}) extra arguments for \code{\link{mvtnorm::dmvnorm}}
 #' 
-#' @return Density function evaluated on the given point
+#' @return \code{dmvWrappedNormal} returns the density function evaluated at \code{x}
 #' 
 #' @importFrom mvtnorm dmvnorm
 #' 
-#' @examples
-#' obj <- mvWrappedNormal(rep(0,3), diag(3) )
-#' fval(obj,c(0,0,0))
-#' fval(obj,c(2*pi,2*pi,2*pi))
-#' fval(obj,c(pi,pi,pi))
-#' 
-#' obj <- mvWrappedNormal(rep(0,3), 1000*diag(3) )
-#' fval(obj,c(0,0,0), k= 60 ) # High accuracy
-#' fval(obj,c(0,0,0), k= 20 )
-#' fval(obj,c(0,0,0), k = 2 ) # Low accuracy due to dispersion
-#' 
-#' obj <- mvWrappedNormal(rep(0,3), 0.1*diag(3) )
-#' fval(obj,c(0,0,0), k= 60 ) # Low dispersion, almost all density is inside 0,2pi 
-#' fval(obj,c(0,0,0), k= 2 ) # Low dispersion, almost all density is inside 0,2pi 
+#' @rdname mvWrappedNormal
 #' @export
-fval.mvWrappedNormal <- function(obj, x, k = 10 ) {
-  
+#' 
+#' @examples
+#' dmvWrappedNormal(c(0,0,0), rep(0,3), 1000*diag(3) )
+#' dmvWrappedNormal(c(0,0,0), rep(0,3), 1000*diag(3),k = 20)
+#' dmvWrappedNormal(c(0,0,0), rep(0,3), 1000*diag(3),k = 2)
+#' dmvWrappedNormal(c(0,0,0), rep(0,3), 0.1*diag(3),k = 2)
+#' dmvWrappedNormal(c(pi,pi,pi), rep(0,3), diag(3) )
+dmvWrappedNormal <- function(x, mu, sigma, k = 10, ...){
+
   # Validate inputs
   if ( (is.matrix(x) || is.data.frame(x) ) ) {
-    if (ncol(x) != length(obj$mu))  stop("")
+    if (ncol(x) != length(mu))  stop("")
   }
   else if (is.numeric(x)) {
-    if ( length(x) != length(obj$mu) ) stop("")
+    if ( length(x) != length(mu) ) stop("")
     else x <- matrix(x,nrow = 1)
   }
   else stop("")
@@ -218,71 +210,64 @@ fval.mvWrappedNormal <- function(obj, x, k = 10 ) {
     # Evaluate at the given points
     # Points to evaluate (x +- k2pi)
     sum(mvtnorm::dmvnorm( sweep(lattice, 2, y, FUN = "+" ),
-                                mean = obj$mu, sigma = obj$sigma, log  = F ))  
+                          mean = mu, sigma = sigma, log  = F ))  
   },original.lat)
   
   # Return!
   return( as.numeric( val ) )
 }
 
-#'  ENGANCHAR A LA ANTERIOR
-#' @param x 
-#' @param mu Circular mean vector
-#' @param sigma
-#' @param k
-#' @param ...
+#' @examples 
+#' obj <- mvWrappedNormal(rep(pi,2), diag(2) )
+#' samples <- getSamples(obj,100)
+#' plot(as.numeric(samples[,1]), as.numeric(samples[,2]) )
 #' 
+#' @rdname mvWrappedNormal
 #' @export
-#' 
-#' @examples
-#' dmvWrappedNormal(c(0,0,0), rep(0,3), 1000*diag(3) )
-#' dmvWrappedNormal(c(0,0,0), rep(0,3), 1000*diag(3),k = 20)
-#' dmvWrappedNormal(c(0,0,0), rep(0,3), 1000*diag(3),k = 2)
-#' dmvWrappedNormal(c(0,0,0), rep(0,3), 0.1*diag(3),k = 2)
-#' dmvWrappedNormal(c(pi,pi,pi), rep(0,3), diag(3) )
-dmvWrappedNormal <- function(x, mu, sigma, k = 10, ...){
-  obj <- mvWrappedNormal(mu,sigma)
-  return( fval(obj, x, k, ...))
+getSamples.mvWrappedNormal <- function(obj, n, ...) {
+  # Retun mv df
+  return( rmvWrappedNormal(n, obj$mu, obj$sigma  ) )
 }
 
-#' Multivariate wrapped normal plot
-#' 
-#' Plots a multivariate wrapped normal distribution. The plot is a d x (d+1) grid with marginals on the diagonal, 
-#' sigma coefficients in the upper tirangle and data plots on the lower.
-#' 
-#' @param obj Multivariate wrapped normal distribution
-#' @param data Datapoints to plot. Usually the samples from \code{mvWrappedNormal.fit}
-#' @param n If data is null, number of point to sample from the distribution
-#' @param ... Additional plot parameters \link{circularNorm.plot}
-#' 
-#' @examples 
-#' samples <- rmvWrappedNormal(1000, rep(pi,3), matrix( c(0.3,0.1,-0.1,0.1,0.3,0,-0.1,0,0.3), ncol = 3 , nrow = 3 )   )
-#' obj <- mvWrappedNormal.fit(samples)
-#' plot(obj, data = obj$fitted.data[1:100,] )
-#' 
-#' 
-# plot.mvWrappedNormal <- function(obj, data = NULL, n = 1000, ...){
-#   
-#   # If data is null and n != 0 we create n samples 
-#   if ( is.null(data) && n > 0 )
-#     data <- getSamples(obj, n)
-#   
-#   # call plot_circularMvVm auxiliar func
-#   wrappedDist.plot( obj$mu, obj$sigma, data, circular::dwrappednormal)
-# }
 
+#' @examples
+#' obj <- mvWrappedNormal(rep(0,3), diag(3) )
+#' fval(obj,c(0,0,0))
+#' fval(obj,c(2*pi,2*pi,2*pi))
+#' fval(obj,c(pi,pi,pi))
+#' 
+#' obj <- mvWrappedNormal(rep(0,3), 1000*diag(3) )
+#' fval(obj,c(0,0,0), k= 60 ) # High accuracy
+#' fval(obj,c(0,0,0), k= 20 )
+#' fval(obj,c(0,0,0), k = 2 ) # Low accuracy due to dispersion
+#' 
+#' obj <- mvWrappedNormal(rep(0,3), 0.1*diag(3) )
+#' fval(obj,c(0,0,0), k= 60 ) # Low dispersion, almost all density is inside 0,2pi 
+#' fval(obj,c(0,0,0), k= 2 ) # Low dispersion, almost all density is inside 0,2pi 
+#' 
+#' @rdname mvWrappedNormal
+#' @export
+fval.mvWrappedNormal <- function(obj, x, k = 10, ... ) {
+  return( dmvWrappedNormal(x, obj$mu, obj$sigma, k , ...) )
+}
+
+#'@importFrom circular dwrappednormal
+#'@rdname mvWrappedNormal
 circMarginal.mvWrappedNormal <- function(obj, x, i){
   return( circular::dwrappednormal(x,obj$mu[i], obj$sigma[i,i] ) )
 }
 
+#'@rdname mvWrappedNormal
 circMarginalMean.mvWrappedNormal <- function(obj , i){
   return( obj$mu[i] )
 }
 
+#'@rdname mvWrappedNormal
 circMarginalConcentration.mvWrappedNormal <- function(obj, i){
   return( obj$sigma[i,i] )
 }
 
+#'@rdname mvWrappedNormal
 circCor.mvWrappedNormal <- function(obj, i, j){
   return( obj$sigma[i, j] )
 }

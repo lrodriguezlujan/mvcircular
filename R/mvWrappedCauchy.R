@@ -1,17 +1,30 @@
+#' @name mvWrappedCauchy
+#' @rdname mvWrappedCauchy
+#' @title Multivariate wrapped Cauchy distribution
+#' 
+#' @description 
+#' These functions implement diverse functionality over the 
+#' multivariate wrapped normal distribution given its parameters mu, the circular mean vector,
+#' and sigma, the variance covariance matrix.
+#' 
+#' @author Luis Rodriguez Lujan 
+#' 
+#' @keywords multivariate cauchy wrapped
+#' 
+#' @seealso \code{\link{mvCircularProbDist}}
+#' @export
+NULL
+
 MVWRAPPEDCAUCHY_CLASS <- "mvWrappedCauchy"
 
-#' Multivariate Wrapped cacuhy distribution
-#' 
-#' Creates a multivariate wrapped cauchy object
-#' 
-#' 
 #' @param mu Circular mean vector
 #' @param sigma a positive-definite symmetric matrix that specifies covariance matrix
-#' 
-#' @return a Multivariate wrapped cacuhy S3 object
+#' @param \dots (Constructor) Named list with additional attributes to add to the object
 #' 
 #' @examples 
 #' mvWrappedCauchy(rep(0,3), diag(3) )
+#' 
+#' @importFrom circular is.circular conversion.circular as.circular
 #' 
 #' @export
 mvWrappedCauchy <- function(mu, sigma, ...){
@@ -29,29 +42,31 @@ mvWrappedCauchy <- function(mu, sigma, ...){
   else if (length(mu) != nrow(sigma) ) {stop("Parameters length do not match")}
   else if (nrow(sigma) != ncol(sigma)) {stop("sigma is not a square matrix")}
   
+  # Create base object
+  obj <- mvCircularProbDist( length(mu) )
+  
   # Create list object
-  obj <- list(
-    dim = length(mu),
-    mu = mu,
-    sigma = sigma)
+  obj$mu <- mu
+  obj$simga <- sigma
   
   ## Add additional params
   obj <- c(obj, list(...))
   
   # Add claseses (probdist + vonmises)
-  class(obj) <- c(PROBDIST_CLASS, MVWRAPPEDCAUCHY_CLASS)
+  class(obj) <- append( class(obj), MVWRAPPEDCAUCHY_CLASS)
   
   return(obj)
 }
 
 
-#' Fit wrapped cauchy distribution
-#' 
-#' This method uses data matrix or dataframe \code{samples} to compute the ML parameters of the distribution
+#' \code{mvWrappedCauchy.fit} uses data matrix or dataframe \code{samples} to compute the ML parameters of the distribution
 #' 
 #' @param samples Matrix or DF with mv circular samples
+#' @param zero.threshold Any sigma value that verifies that \code{abs(x) < zero.threshold } is returned as zero
 #' 
-#' @return A mvWrappedCacuhy object
+#' @return \code{mvWrappedCauchy.fit} returns a mvWrappedCacuhy object
+#' 
+#' @importFrom  Matrix nearPD
 #' 
 #' @examples 
 #' samples <- rmvWrappedCauchy(1E6, rep(pi,3), matrix( c(0.3,.1,-.1,.1,.3,0,-.1,.0,.3), ncol = 3 , nrow = 3 )   )
@@ -59,9 +74,10 @@ mvWrappedCauchy <- function(mu, sigma, ...){
 #' sum(abs(obj$mu - rep(pi,3)))
 #' sum(abs(obj$sigma - matrix( c(3,1,-1,1,3,0,-1,0,3), ncol = 3 , nrow = 3 ) ))
 #' plot(obj)
-#' 
+#'
+#' @rdname mvWrappedCauchy 
 #' @export
-mvWrappedCauchy.fit <- function(samples, zero.threshold = 1E-2, ...){
+mvWrappedCauchy.fit <- function(samples, zero.threshold = 1E-2){
   
   # number of variables
   ndim <- ncol(samples)
@@ -107,40 +123,25 @@ mvWrappedCauchy.fit <- function(samples, zero.threshold = 1E-2, ...){
   return( mvWrappedCauchy(mu, sigma, fitted.data = samples) )
 }
 
-#' Multivariate wrapped normals sampler
-#'
-#' Samples n instances from the multivariate wrapped normal
-#'
-#' @param obj Multivariate wrapped normal
-#' @param n Number of samples to generate
-#' @param ... Additional parameters for \link{mvtnorm::rmvnorm}
-#' 
-#' @return A circular dataframe
-#' 
-#' @importFrom mvtnorm rmvnorm
-#' 
-#' @examples 
-#' obj <- mvWrappedCauchy(rep(pi,2), diag(2) )
-#' samples <- getSamples(obj,100)
-#' plot(as.numeric(samples[,1]), as.numeric(samples[,2]) )
-#' 
-#' @export
-getSamples.mvWrappedCauchy <- function(obj, n, ...) {
-  
-  # Retun mv df
-  return( rmvWrappedCauchy(n, obj$mu, obj$sigma ) )
-}
 
-#' ENGANCHAR A getSamples (ver doc S3)
 #' @param n Number of samples to generate
-#' @param mu Circular mean vector
-#' @param sigma
-#' @param ... Additional parameters for \see{mvtnorm::rmvnorm}
+#' @param ... (\code{rmvWrappedCauchy}) Additional parameters for \code{\link{mvtnorm::rmvnorm} }
+#' 
+#' @return \code{rmvWrappedCauchy} returns a multivariate circular dataframe with \code{n} 
+#' samples from a wrapped-Cauchy distribution
 #' 
 #' @examples 
 #' samples <- rmvWrappedCauchy(100, rep(pi,2), diag(2) )
 #' plot(as.numeric(samples[,1]), as.numeric(samples[,2]) )
 #' 
+#' @importFrom corpcor is.positive.definite
+#' @importFrom mvtnorm rmvnorm
+#' 
+#' @note 
+#' \code{rmvWrappedCauchy} sampling  and density function method is based on the code from  the (discontinued) 
+#' \code{LaplacesDaemon} package.
+#' 
+#' @rdname mvWrappedCauchy
 #' @export
 rmvWrappedCauchy <- function(n, mu, sigma, ...){
   
@@ -154,11 +155,11 @@ rmvWrappedCauchy <- function(n, mu, sigma, ...){
   
   # Default values for sigma
   if (missing(sigma)) sigma <- diag( ncol(mu) )
-  if (!is.matrix(sigma)) sigma <- matrix(S)
+  if (!is.matrix(sigma)) sigma <- matrix(sigma)
   
   # Check that sigma is PD
   if (!corpcor::is.positive.definite(sigma))
-    stop("Matrix S is not positive-definite.")
+    stop("Matrix sigma is not positive-definite.")
   
   k <- ncol(sigma)
   if (n > nrow(mu)) mu <- matrix(mu, n, k, byrow = TRUE)
@@ -168,7 +169,7 @@ rmvWrappedCauchy <- function(n, mu, sigma, ...){
   x <- ifelse(x == 0, 1e-100, x)
   
   # Sample from multivariate normal
-  z <- mvtnorm::rmvnorm(n, rep(0,k), sigma)
+  z <- mvtnorm::rmvnorm(n, rep(0,k), sigma, ...)
   
   # Put in place
   x <- (mu + z/sqrt(x)) %% (2*pi)
@@ -199,45 +200,11 @@ dmvc <- function(x, mu, sigma, log=FALSE)
   return(dens)
 }
 
-#' Multivariate wrapped normal density function
+#'  \code{dmvWrappedCauchy} computes multivariate wrapped normal densitiy function approximately. The precission is controled by
+#'  \code{k}, the number of points to evaluate per dimension. The total number of points will be  \code{(k+1) ^ ndim} (Z-lattice)
 #' 
-#' Computes multivariate wrapped normal densitiy function approximately. The precission is controled by
-#' k, the number of points to evaluate per dimension. The total number of points will be  (k+1) ^ ndim (Z-lattice)
-#' 
-#' @param obj A Multivariate wrapped normal object
 #' @param x The point to evaluate
-#' @param k Number of terms to be used per dimension
-#' @param ... Extra arguments for \link{mvtnorm::dmvnorm}
-#' 
-#' @return Density function evaluated on the given point
-#' 
-#' @importFrom mvtnorm dmvnorm
-#' 
-#' @examples
-#' obj <- mvWrappedCauchy(rep(0,3), diag(3) )
-#' fval(obj,c(0,0,0))
-#' fval(obj,c(2*pi,2*pi,2*pi))
-#' fval(obj,c(pi,pi,pi))
-#' 
-#' obj <- mvWrappedCauchy(rep(0,3), 1000*diag(3) )
-#' fval(obj,c(0,0,0), k= 60 ) # High accuracy
-#' fval(obj,c(0,0,0), k= 20 )
-#' fval(obj,c(0,0,0), k = 2 ) # Low accuracy due to dispersion
-#' 
-#' obj <- mvWrappedCauchy(rep(0,3), 0.1*diag(3) )
-#' fval(obj,c(0,0,0), k= 60 ) # Low dispersion, almost all density is inside 0,2pi 
-#' fval(obj,c(0,0,0), k= 2 ) # Low dispersion, almost all density is inside 0,2pi 
-#' @export
-fval.mvWrappedCauchy <- function(obj, x, k = 10 ) {
- return(dmvWrappedCauchy(x, obj$mu, obj$sigma, k ))
-}
-
-#'  ENGANCHAR A LA ANTERIOR
-#' @param x 
-#' @param mu Circular mean vector
-#' @param sigma
-#' @param k
-#' @param ...
+#' @param k Number of points per dimension
 #' 
 #' @examples
 #' dmvWrappedCauchy(c(0,0,0), rep(0,3), 1000*diag(3) )
@@ -246,8 +213,13 @@ fval.mvWrappedCauchy <- function(obj, x, k = 10 ) {
 #' dmvWrappedCauchy(c(0,0,0), rep(0,3), 0.1*diag(3),k = 2)
 #' dmvWrappedCauchy(c(pi,pi,pi), rep(0,3), diag(3) )
 #' 
+#' @importFrom corpcor is.positive.definite
+#' @importFrom Matrix rowSums
+#' @importFrom MASS ginv
+#' 
+#' @rdname mvWrappedCauchy
 #' @export
-dmvWrappedCauchy <- function(x, mu, sigma, k = 10, ...){
+dmvWrappedCauchy <- function(x, mu, sigma, k = 10){
   
   # Validate inputs
   if ( (is.matrix(x) || is.data.frame(x) ) ) {
@@ -288,45 +260,57 @@ dmvWrappedCauchy <- function(x, mu, sigma, k = 10, ...){
   return( as.numeric( val ) )
 }
 
-#' Multivariate wrapped normal plot
-#' 
-#' Plots a multivariate wrapped normal distribution. The plot is a d x (d+1) grid with marginals on the diagonal, 
-#' sigma coefficients in the upper tirangle and data plots on the lower.
-#' 
-#' @param obj Multivariate wrapped normal distribution
-#' @param data Datapoints to plot. Usually the samples from \code{mvWrappedCauchy.fit}
-#' @param n If data is null, number of point to sample from the distribution
-#' @param ... Additional plot parameters \link{wrappedNorm.plot}
-#' 
 #' @examples 
-#' samples <- rmvWrappedCauchy(1000, rep(pi,3), matrix( c(0.3,0.1,-0.1,0.1,0.3,0,-0.1,0,0.3), ncol = 3 , nrow = 3 )   )
-#' obj <- mvWrappedCauchy.fit(samples)
-#' plot(obj, data = obj$fitted.data[1:100,] )
+#' obj <- mvWrappedCauchy(rep(pi,2), diag(2) )
+#' samples <- getSamples(obj,100)
+#' plot(as.numeric(samples[,1]), as.numeric(samples[,2]) )
 #' 
+#' @rdname mvWrappedCauchy
+#' @export
+getSamples.mvWrappedCauchy <- function(obj, n, ...) {
+  
+  # Retun mv df
+  return( rmvWrappedCauchy(n, obj$mu, obj$sigma, ... ) )
+}
+
+#' @examples
+#' obj <- mvWrappedCauchy(rep(0,3), diag(3) )
+#' fval(obj,c(0,0,0))
+#' fval(obj,c(2*pi,2*pi,2*pi))
+#' fval(obj,c(pi,pi,pi))
 #' 
-# plot.mvWrappedCauchy <- function(obj, data = NULL, n = 1000, ...){
-#   
-#   # If data is null and n != 0 we create n samples 
-#   if ( is.null(data) && n > 0 )
-#     data <- getSamples(obj, n)
-#   
-#   # call plot_circularMvVm auxiliar func
-#   wrappedDist.plot( obj$mu, obj$sigma, data, circular::dwrappedcauchy)
-# }
+#' obj <- mvWrappedCauchy(rep(0,3), 1000*diag(3) )
+#' fval(obj,c(0,0,0), k= 60 ) # High accuracy
+#' fval(obj,c(0,0,0), k= 20 )
+#' fval(obj,c(0,0,0), k = 2 ) # Low accuracy due to dispersion
+#' 
+#' obj <- mvWrappedCauchy(rep(0,3), 0.1*diag(3) )
+#' fval(obj,c(0,0,0), k= 60 ) # Low dispersion, almost all density is inside 0,2pi 
+#' fval(obj,c(0,0,0), k= 2 ) # Low dispersion, almost all density is inside 0,2pi 
+#' 
+#' @rdname mvWrappedCauchy
+#' @export
+fval.mvWrappedCauchy <- function(obj, x, k = 10 ) {
+  return(dmvWrappedCauchy(x, obj$mu, obj$sigma, k ))
+}
 
-
+#' @importFrom circular dwrappedcauchy
+#' @rdname mvWrappedCauchy
 circMarginal.mvWrappedCauchy <- function(obj, x, i){
   return( circular::dwrappedcauchy(x,obj$mu[i], obj$sigma[i,i] ) )
 }
 
+#' @rdname mvWrappedCauchy
 circMarginalMean.mvWrappedCauchy <- function(obj , i){
   return( obj$mu[i] )
 }
 
+#' @rdname mvWrappedCauchy
 circMarginalConcentration.mvWrappedCauchy <- function(obj, i){
   return( obj$sigma[i,i] )
 }
 
+#' @rdname mvWrappedCauchy
 circCor.mvWrappedCauchy <- function(obj, i, j){
   return( obj$sigma[i, j] )
 }
