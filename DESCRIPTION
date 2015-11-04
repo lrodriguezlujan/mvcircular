@@ -1,7 +1,7 @@
 Package: mvCircular
 Type: Package
 Title: Multivariate circular statistics
-Version: 0.1
+Version: 0.2
 Date: 2015-10-30
 Author: Luis Rodriguez-Lujan
 Maintainer: Luis Rodriguez-Lujan <luis.rodriguezl@upm.es>
@@ -14,6 +14,7 @@ Imports:
     bit64 (>= 0.9.0),
     mvtnorm (>= 1.0.0),
     corpcor (>= 1.6.7),
-    coda (>= 0.17.1)
+    coda (>= 0.17.1),
+    tmvtnorm (>= 1.4.9)
 Extends:
     circular
