@@ -72,4 +72,11 @@ This package uses [L-BFGS-B-C](https://github.com/stephenbeckr/L-BFGS-B-C):
 
 This R package is written by Luis Rodríguez, [luis.rodriguezl@upm.es](mailto:luis.rodriguezl@upm.es)
 
+L-BFGS-B-C  (C version of L-BFGS-B Version 3.0) was written by Stephen Becker.
+
+L-BFGS-B Version 3.0 is an algorithmic update from 2011, with coding changes by J. L. Morales.
+
+The L-BFGS-B algorithm was written in the 1990s (mainly 1994, some revisions 1996) by Ciyou Zhu (in collaboration with R.H. Byrd, P. Lu-Chen and J. Nocedal)
+
+
 
