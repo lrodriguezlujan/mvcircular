@@ -17,10 +17,10 @@ From github:
 ``` R 
 
 # Install rthreejs branch (optional)
-install_github("rthreejs", username = "lrodriguezlujan", ref = "add_composition")
+install_github("lrodriguezlujan/rthreejs", ref = "add_composition")
 
 # Install mvCircular
-install_github("mvCircular", username = "lrodriguezlujan", ref = "master")
+install_github("lrodriguezlujan/mvCircular", ref = "master")
 
 ```
 

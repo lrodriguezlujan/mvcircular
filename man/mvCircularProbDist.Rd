@@ -41,7 +41,7 @@ contourPlot(obj, ...)
 
 torusPlot(obj, ...)
 
-\method{torusPlot}{mvCircularProbDist}(obj, npoints = 10000, color = T, ...)
+\method{torusPlot}{mvCircularProbDist}(obj, npoints = 10000, ...)
 
 \method{contourPlot}{mvCircularProbDist}(obj, npoints = 10000, color = T,
   k = 4, ...)
@@ -65,7 +65,7 @@ torusPlot(obj, ...)
 
 \item{npoints}{Number of points to evaluate}
 
-\item{color}{If true, instead of level lines contours are filled}
+\item{color}{Plot main color}
 
 \item{data}{Data to plot in the lower triagonal segment. Usually data used for fitting.}
 
@@ -84,8 +84,6 @@ torusPlot(obj, ...)
 \item{\dots}{(contourPlot) Additional parameters for \code{\link{contour}} or \code{\link{filled.contour}}}
 
 \item{\dots}{(plot) Additional arguments for \link{circMarginal}}
-
-\item{color}{Plot main color}
 }
 \value{
 \code{getSamples} returns a circular dataframe with n samples from the given circular distribution
