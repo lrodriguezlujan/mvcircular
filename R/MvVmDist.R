@@ -216,6 +216,10 @@ normalize.mvVonMises <- function(obj, normalization.samples = 1E6 ) {
   # Compute value
   obj$z <- vol/normalization.samples * sum(val) ;
   
+  # Approximation error
+  rf2 <- sum((val - obj$z) ^ 2) / (normalization.samples - 1)   
+  obj$z.stderr <- sqrt(rf2 * vol / normalization.samples )
+  
   return(obj)
 }
 
