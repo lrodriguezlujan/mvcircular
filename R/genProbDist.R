@@ -2,7 +2,7 @@
 #' @rdname mvCircularProbDist
 #' @title Multivariate circular distribution
 #' 
-#' Generic defnition for a multivariate ciruclar distribution
+#' @description Generic defnition for a multivariate ciruclar distribution
 #' 
 #' @author Luis Rodriguez Lujan 
 #' 
@@ -14,6 +14,7 @@ NULL
 # Class name
 PROBDIST_CLASS <- "mvCircularProbDist"
 
+#' @rdname mvCircularProbDist
 #' @param dim  Number of variables
 #' @param \dots (\code{mvCircularProbDist}) Named list with aditional parameters to include in the object
 #' 
@@ -30,12 +31,11 @@ mvCircularProbDist <- function(dim, ... ){
   return(ret)
 }
 
+#' @rdname mvCircularProbDist
 #' @return \code{getSamples} returns a circular dataframe with n samples from the given circular distribution
 #' 
 #' @param obj A multivariate circular distribution object
 #' @param n The number of samples to return
-#' 
-#' @rdname mvCircularProbDist
 #' 
 #' @export
 getSamples <- function(obj, n, ...){
@@ -77,7 +77,6 @@ normalize <- function(obj, ...){
 normalize.default <- function(obj){
   return(obj)
 }
-
 
 #' @param i Component index
 #' 
@@ -320,4 +319,32 @@ plot.mvCircularProbDist <- function(obj, data = NULL, n = 100 ,
     }
   }
   options(warn = 0)
+}
+
+### 
+# KL
+### 
+
+#' @rdname mvCircularProbDist
+#'
+#' @return \code{kl} returns the KL divergence value between obj and q
+#' @export
+kl <- function(obj, q, ...){
+  if ( !inherits(q, PROBDIST_CLASS) ) stop("Q should be a mv circular object")
+  UseMethod("kl",obj)
+}
+
+#' @export
+#' @noRd
+kl.mvCircularProbDist <- function(obj, q, N){
+  
+  # Importance sampling from P (obj)
+  points <- getSamples(obj, N)
+  
+  # Normalize both
+  q <- normalize(q)
+  obj <- normalize(obj)
+  
+  # Evaluate log(obj/q)
+  return(sum(log( fval(obj, points) / fval(q, points) )) / N)
 }

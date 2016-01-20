@@ -185,7 +185,8 @@ dmvVonMises <- function(x, mu, kappa, lambda, z = NULL){
 #' @export
 normalize.mvVonMises <- function(obj, normalization.samples = 1E6 ) {
   
-  # Compute normalization term
+  # Compute normalization term only if needed
+  if ( !is.null(obj$z) ) return(obj)
   
   # Number of variables
   dims <- length(obj$mu)
