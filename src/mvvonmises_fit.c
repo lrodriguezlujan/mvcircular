@@ -49,10 +49,19 @@ void matrixDiagToFull(int p, double* diags, double*full){
  * @param [in,out] lambda pxp Real matrix on row-leading order. Lambda parameter of the mv-vm dist
  * @param [in] n Number of samples
  * @param [in] samples
+ * @param [in] phi Prior matrix
+ * @param [in] H Confidence matrix
+ * @param [in] verbose
+ * @param [in] prec
+ * @param [in] tol 
+ * @param [in] mprec
+ * @param [in] lower
+ * @param [in] upper
+ * @param [in] bounded
  *
  * @returns Natural logarithm of the pseudolikelihood of the fitted distribution (aprox)
  */
-double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, int n, double *samples, double* penMatrix,
+double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, int n, double *samples, double* phi, double *H,
                             int verbose, double prec, double tol, int mprec, double *lower, double *upper, int *bounded ){
 
     uint_fast16_t i,j,l_int,col_shift;
@@ -83,10 +92,8 @@ double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, in
 #endif
 
 
-        /* LBFGS variables */
+    /* LBFGS variables */
     /* integer and logical types come from lbfgsb.h */
-
-    /* LBFGS static parameters - To be included as inputs! */
     integer iprint = verbose; // No output
     double  factr = prec; // Moderate prec
     double  pgtol = tol; // Gradient tolerance
@@ -103,6 +110,7 @@ double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, in
 
     /* Dynamic parameters (Given, but we might have to cast)*/
     integer nvar = ((p*p)-p)/2 + p;  // Number of variables
+
     double  f = DBL_MAX;   // Eval value
     double *g = calloc(sizeof(double),nvar*4); // Gradient value
     double *l = g+nvar; // lower bounds
@@ -154,7 +162,7 @@ double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, in
 
             // Call loss function with current x
             f = mv_vonmises_lossFunction(n,p,kappa,lambda,S,C,ro,d_kappa,d_lambda);
-
+/*******************************************************/
 #ifdef DEBUG
             // Approx DF for kappa
             for(i=0;i<p;i++){
@@ -178,21 +186,49 @@ double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, in
             }
 
 #endif
+/**************************************************************/
+
             // Kappa partials
             memcpy(g,d_kappa,sizeof(double)*p);
 
             // Apply penalization
-            if(penMatrix!=NULL){
-                for(i=0;i<(p-1);i++){
-                    for(j=i+1;j<p;j++){
-                        f += penMatrix[i*p+j]*fabs(lambda[i*p+j]);
-                        d_lambda[i*p + j]+=penMatrix[i*p + j]*(lambda[i*p + j]<0?-2:(lambda[i*p +j]>0?2:0));
+            if( (phi!=NULL) && (H != NULL) ){
+
+                double fnorm = 0;
+                double fnorm_term;
+
+                // Compute f norm
+                 for (i=0; i < (p-1); i++) {
+                    for (j=i+1; j < p; j++){
+                        fnorm_term = (lambda[ i*p + j] - phi[ i*p + j]) * H[ i*p + j];
+                        fnrom += fnorm_term * fnorm_term;
+                    }
+                 }
+            
+                 // We also need to include kappa
+                 for (i=0; i<p; i++){
+                        fnorm_term = (kappa[ i ] - phi[ i*p + i]) * H[ i*p + i];
+                        fnrom += fnorm_term * fnorm_term;
+                 }
+                 // Add norm to F
+                 fnorm = sqrtl(fnorm);
+                 f += fnorm;
+
+                // Modify lambda partials
+                for (i=0; i < (p-1); i++) {
+                    for (j=i+1; j < p; j++){
+                        d_lambda[i*p + j]+= H[i*p + j] * H[i*p + j] * ( lambda[i*p + j] - phi[ i*p + j] ) / fnorm ;
                         d_lambda[j*p + i]=d_lambda[i*p + j];
                     }
                 }
+
+                // Modify kappa partials
+                for (i=0; i<p; i++){
+                        d_kappa[i]+= H[i*p + i] * H[i*p + i] * ( kappa[i] - phi[ i*p + i] ) / fnorm ;
+                 }
             }
 
-            // Lambda partials
+            // Lambda partials (to vector)
             for(i=0,col_shift=1,l_int=(p-1),j=0;j<(p*(p-1))/2;j++,i++){
                 if(l_int==i){
                     l_int--;i=0;col_shift++;
