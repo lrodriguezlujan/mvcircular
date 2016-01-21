@@ -7,7 +7,8 @@
 #' @param mu Initial value for mean vector. It should be Circular.
 #' @param kappa Initial value for concentration vector
 #' @param lambda Initial value for lambda matrix
-#' @param penalization Penalization applied to lambda. If it is a number penalization is applied euqally to all lambda elements. If it is a matrix, each component is penalized individually.
+#' @param phi Prior parameter matrix. P matrix is Diag(kappa) - LAMBDA
+#' @param H confidence matrixs
 #' @param verbose Verbose degree parameter. -1 for silent mode.
 #' @param prec Precision parameter of the LBFGS-B method
 #' @param tolerance Tolerance parameter of the LBFGS-B mehtod
@@ -27,13 +28,13 @@ fit_mvvonmises <- function(samples,
                            mu = rep(0,ncol(samples)),
                            kappa = rep(1,ncol(samples)),
                            lambda = matrix(0,ncol = ncol(samples), nrow = ncol(samples)),
-                           penalization = 0,
+                           phi = NULL,
+                           H = NULL,
                            verbose = -1,
                            prec = 1E5,
                            tolerance = 1E-7,
                            mprec = 30,
-                           retry = 10,
-                           type = c("opt","old")){
+                           retry = 10){
   
 
   
@@ -45,23 +46,34 @@ fit_mvvonmises <- function(samples,
   # Get sample size
   p <- ncol(samples)
   n <- nrow(samples)
-  
-  ## Check type
-  type <- match.arg(type)
 
   # Check params
   if (length(mu) != p || length(kappa) != p || nrow(lambda) != p || ncol(lambda) != p)
     stop("Initial parameters length do not match")
   
-  if (any(penalization < 0))
-    stop("Penalization should be positive")
+  if (any(H < 0) )
+    stop("Confidence should be positive")
   
-  if (!is.matrix(penalization) && is.numeric(penalization) ) {
-    ## We can set penalization = to NULL if is all zero's, but im not sure that the C call will send a R_nilValue
-      penalization <- matrix(penalization,nrow = p,ncol = p)
-      diag(penalization) <- 0
+  # Ensure that phi is a matrix and that it is symmetric
+  if (!is.null(phi)) {
+    phi <- as.matrix(phi)
+    phi <- (phi + t(phi))/2
+    
+    if (is.null(H))
+      H <- matrix(1, nrow = p, ncol = p )
+    
+    phi <- t(phi)
+    withPenalization <- 1
   }
+  else
+    withPenalization <- 0
   
+  # Ensure that H is upper triangular
+  if (!is.null(H)) {
+    H[lower.tri(H)] <- 0
+    H <- t(H)
+  }
+    
   if (!is.numeric(verbose))
     stop("Verbose should be numeric")
   
@@ -95,18 +107,21 @@ fit_mvvonmises <- function(samples,
   i <- 0;
   fail <- T
   while (fail && i < retry) {
+    
     # Reset failure flag
     fail <- F
+    
     # Optimized procedure
-    if (type == "opt")
-      ret <- .C("__R_mvvonmises_lbfgs_fit",
+    ret <- .C("__R_mvvonmises_lbfgs_fit",
               p = as.integer(p),
               mu = as.double(mu),
               kappa = as.double(kappa),
               lambda = as.double(lambda),
               n = as.integer(n),
               samples = as.double(t(samples)),
-              penMatrix = as.double(penalization),
+              penalized = as.integer(withPenalization),
+              phi = as.double(phi),
+              H = as.double(H),
               verbose = as.integer(verbose),
               prec = as.double(prec),
               tol = as.double(tolerance),
@@ -116,25 +131,6 @@ fit_mvvonmises <- function(samples,
               bounded = as.integer(bounded),
               loss = double(1),
               PACKAGE = "mvCircular")
-    else
-      # Regular procedure
-      ret <- .C("__R_mvvonmises_lbfgs_fit_OLD",
-                p = as.integer(p),
-                mu = as.double(mu),
-                kappa = as.double(kappa),
-                lambda = as.double(lambda),
-                n = as.integer(n),
-                samples = as.double(t(samples)),
-                penMatrix = as.double(penalization),
-                verbose = as.integer(verbose),
-                prec = as.double(prec),
-                tol = as.double(tolerance),
-                mprec = as.integer(mprec),
-                lower = as.double(lower),
-                upper = as.double(upper),
-                bounded = as.integer(bounded),
-                loss = double(1),
-                PACKAGE = "mvCircular")
     
       # Check for failure
       if ( is.nan(ret$loss) ) {

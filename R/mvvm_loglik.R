@@ -132,5 +132,5 @@ mvVonMises.logplik.pen.gr <- function(par, phi = NULL, H = NULL, alpha = NULL, d
   
 }
 
-test <- optim(rep(0.5,6), mvCircular:::mvVonMises.logplik.pen , mvCircular:::mvVonMises.logplik.pen.gr,
-      data.s = sin(x.samples), data.c = cos(x.samples), method = "L-BFGS-B", lower = c(0,0,0,-Inf, -Inf, -Inf) )
+#test <- optim(rep(0.5,6), mvCircular:::mvVonMises.logplik.pen , mvCircular:::mvVonMises.logplik.pen.gr,
+      #data.s = sin(x.samples), data.c = cos(x.samples), method = "L-BFGS-B", lower = c(0,0,0,-Inf, -Inf, -Inf) )
