@@ -330,7 +330,7 @@ plot.mvCircularProbDist <- function(obj, data = NULL, n = 100 ,
 #' @return \code{kl} returns the KL divergence value between obj and q
 #' @export
 kl <- function(obj, q, ...){
-  if ( !inherits(q, PROBDIST_CLASS) ) stop("Q should be a mv circular object")
+  #if ( !inherits(q, PROBDIST_CLASS) ) stop("Q should be a mv circular object")
   UseMethod("kl",obj)
 }
 
