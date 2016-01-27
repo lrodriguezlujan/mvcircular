@@ -71,7 +71,7 @@ fit_mvvonmises <- function(samples,
   # Ensure that H is upper triangular
   if (!is.null(H)) {
     H[lower.tri(H)] <- 0
-    H <- t(H)
+    H <- t(H) # C matrices are row-ordered
   }
     
   if (!is.numeric(verbose))

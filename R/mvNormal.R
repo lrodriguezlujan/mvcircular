@@ -66,7 +66,7 @@ mvNormal.fit <- function(samples, zero.threshold = 1E-2, ...){
   nsamples <- nrow(samples)
   
   # Prealloc sigma.sinh
-  sigma <- var(samples)
+  sigma <- stats::var(samples)
   mu <- colMeans(samples)
   
   # Any value under the threshold is 0
