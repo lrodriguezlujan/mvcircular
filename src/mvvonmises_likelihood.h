@@ -75,10 +75,4 @@ double mvvm_density_unregularized(int p, double *theta, double *mu, double *kapp
  */
 long double mv_vonmises_lossFunction(int n,int p, double* kappa, double* lambda, long double *S, long double *C, long double *ro, double *d_kappa, double *d_lambda);
 
-double vm_loglikelihood_lambda_deriv_old(int n, int p, int R,int S, double *mu, double *kappa, double *lambda, double *theta);
-
-double vm_loglikelihood_kappa_deriv_old(int n, int p, int R, double *mu, double *kappa, double *lambda, double *theta);
-
-double mv_vonmises_logpseudolikelihood_nonopt(int n,int p, double* mu, double* kappa, double* lambda, double *theta);
-
 #endif
