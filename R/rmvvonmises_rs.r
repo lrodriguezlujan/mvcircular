@@ -109,6 +109,7 @@ rmvvonmises_rs <- function(n,
     thinningVal <- ceiling(log(thinning / p) / log(1 - min(alpha))) * min(5,ceiling(1 + log(1 + sum(abs(lambda)) + sum(kappa))))
   
   # Compute initial seeds as a list of seeds
+  chains <- min(chains,n)
   theta <- split( runif(p*chains,min = 0,max = (2*pi) ), rep(1:chains, each = p) )
   
   # Perform fixed burn-in if required
