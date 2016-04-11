@@ -28,6 +28,7 @@ fit_mvvonmises <- function(samples,
                            mu = rep(0,ncol(samples)),
                            kappa = rep(1,ncol(samples)),
                            lambda = matrix(0,ncol = ncol(samples), nrow = ncol(samples)),
+                           type = c("F","L1"),
                            phi = NULL,
                            H = NULL,
                            verbose = -1,
@@ -43,6 +44,9 @@ fit_mvvonmises <- function(samples,
   if (!is.mvCircular(samples))
     stop("Samples should be multivariate circular")
   
+  # Penalization type
+  type <- match.arg(type)
+  
   # Get sample size
   p <- ncol(samples)
   n <- nrow(samples)
@@ -51,28 +55,35 @@ fit_mvvonmises <- function(samples,
   if (length(mu) != p || length(kappa) != p || nrow(lambda) != p || ncol(lambda) != p)
     stop("Initial parameters length do not match")
   
-  if (any(H < 0) )
-    stop("Confidence should be positive")
-  
-  # Ensure that phi is a matrix and that it is symmetric
-  if (!is.null(phi)) {
-    phi <- as.matrix(phi)
-    phi <- (phi + t(phi))/2
+  if ( type == "F" ) {
+    if (any(H < 0) )
+      stop("Confidence should be positive")
     
-    if (is.null(H))
-      H <- matrix(1, nrow = p, ncol = p )
+    # Ensure that phi is a matrix and that it is symmetric
+    if (!is.null(phi)) {
+      phi <- as.matrix(phi)
+      phi <- (phi + t(phi))/2
+      
+      if (is.null(H))
+        H <- matrix(1, nrow = p, ncol = p )
+      
+      phi <- t(phi)
+      withPenalization <- 1
+    }
+    else
+      withPenalization <- 0
     
-    phi <- t(phi)
-    withPenalization <- 1
+    # Ensure that H is upper triangular
+    if (!is.null(H)) {
+      H[lower.tri(H)] <- 0
+      H <- t(H) # C matrices are row-ordered
+    }  
   }
-  else
-    withPenalization <- 0
+  else if (type == "L1") {
+    if ( is.null(phi) ||  phi < 0 )
+      stop("Phi should be a positive integer")
+  }
   
-  # Ensure that H is upper triangular
-  if (!is.null(H)) {
-    H[lower.tri(H)] <- 0
-    H <- t(H) # C matrices are row-ordered
-  }
     
   if (!is.numeric(verbose))
     stop("Verbose should be numeric")
@@ -112,25 +123,44 @@ fit_mvvonmises <- function(samples,
     fail <- F
     
     # Optimized procedure
-    ret <- .C("__R_mvvonmises_lbfgs_fit",
-              p = as.integer(p),
-              mu = as.double(mu),
-              kappa = as.double(kappa),
-              lambda = as.double(lambda),
-              n = as.integer(n),
-              samples = as.double(t(samples)),
-              penalized = as.integer(withPenalization),
-              phi = as.double(phi),
-              H = as.double(H),
-              verbose = as.integer(verbose),
-              prec = as.double(prec),
-              tol = as.double(tolerance),
-              mprec = as.integer(mprec),
-              lower = as.double(lower),
-              upper = as.double(upper),
-              bounded = as.integer(bounded),
-              loss = double(1),
-              PACKAGE = "mvCircular")
+    if( type == "F" )
+      ret <- .C("__R_mvvonmises_lbfgs_fit",
+                p = as.integer(p),
+                mu = as.double(mu),
+                kappa = as.double(kappa),
+                lambda = as.double(lambda),
+                n = as.integer(n),
+                samples = as.double(t(samples)),
+                penalized = as.integer(withPenalization),
+                phi = as.double(phi),
+                H = as.double(H),
+                verbose = as.integer(verbose),
+                prec = as.double(prec),
+                tol = as.double(tolerance),
+                mprec = as.integer(mprec),
+                lower = as.double(lower),
+                upper = as.double(upper),
+                bounded = as.integer(bounded),
+                loss = double(1),
+                PACKAGE = "mvCircular")
+    else if (type == "L1" )
+      ret <- .C("__R_mvvonmises_lbfgs_fit_l1",
+                p = as.integer(p),
+                mu = as.double(mu),
+                kappa = as.double(kappa),
+                lambda = as.double(lambda),
+                n = as.integer(n),
+                samples = as.double(t(samples)),
+                penparam = as.double(phi),
+                verbose = as.integer(verbose),
+                prec = as.double(prec),
+                tol = as.double(tolerance),
+                mprec = as.integer(mprec),
+                lower = as.double(lower),
+                upper = as.double(upper),
+                bounded = as.integer(bounded),
+                loss = double(1),
+                PACKAGE = "mvCircular")
     
       # Check for failure
       if ( is.nan(ret$loss) ) {
