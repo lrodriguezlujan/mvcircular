@@ -1,5 +1,6 @@
 /*******************
  * Module to fit a mVM distribution from data samples
+ * with L1 Penalization
  *
  * $Date:$
  * $Revision:$
@@ -12,22 +13,9 @@
 #include <string.h>
 #include <math.h>
 #include "lbfgsb.h"
-#include "mvvonmises_fit.h"
+#include "mvvonmises_fit_l1.h"
 #include "mvvonmises_likelihood.h"
 #include "circularMvStats.h"
-
-/** Matrix  upper triangle to full matrix */
-void matrixUpperToFull(int p, double* upt, double*full){
-
-    int i,j,l; 
-
-    for( i = 0, l = 0; i < (p-1) ; i++){
-        for( j = (i+1) ; j < p ; j++, l++ ){
-            full[ i*p + j ] = upt[l];
-            full[ j*p + i ] = upt[l];
-        }
-    }
-}
 
 /**
  * Maximum full pseudolikelihood method to estimate parameters.
@@ -40,8 +28,7 @@ void matrixUpperToFull(int p, double* upt, double*full){
  * @param [in,out] lambda pxp Real matrix on row-leading order. Lambda parameter of the mv-vm dist
  * @param [in] n Number of samples
  * @param [in] samples
- * @param [in] phi Prior matrix
- * @param [in] H Confidence matrix
+ * @param [in] Penparam
  * @param [in] verbose
  * @param [in] prec
  * @param [in] tol 
@@ -52,7 +39,7 @@ void matrixUpperToFull(int p, double* upt, double*full){
  *
  * @returns Natural logarithm of the pseudolikelihood of the fitted distribution (aprox)
  */
-double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, int n, double *samples, double* phi, double *H,
+double mvvonmises_lbfgs_fit_l1(int p, double* mu, double* kappa, double* lambda, int n, double *samples, double penparam,
                             int verbose, double prec, double tol, int mprec, double *lower, double *upper, int *bounded ){
 
     uint_fast16_t i,j,k;
@@ -74,13 +61,6 @@ double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, in
     /* Derivatives */
     d_kappa = malloc(sizeof(double)*(p+(p*p)));
     d_lambda = d_kappa + p;
-
-#ifdef DEBUG
-    double *d_kappa_fd,*d_lambda_fd;
-
-    d_kappa_fd = malloc(sizeof(double)*(p+(p*p)));
-    d_lambda_fd = d_kappa_fd + p;
-#endif
 
 
     /* LBFGS variables */
@@ -151,101 +131,43 @@ double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, in
 
             // Call loss function with current x
             f = mv_vonmises_lossFunction(n,p,kappa,lambda,S,C,ro,d_kappa,d_lambda);
-/*******************************************************/
-#ifdef DEBUG
-            // Approx DF for kappa
-            for(i=0;i<p;i++){
-                kappa[i]+=1E-9;
-                d_kappa_fd[i] = (mv_vonmises_lossFunction(n,p,kappa,lambda,S,C,ro,NULL,NULL)-f)/1E-9  ;
-                kappa[i]-=1E-9;
-                printf("KAPPA(%d):  calc %f \t  fd approx: %f \t DIFF: %f \n",i,d_kappa[i],d_kappa_fd[i],fabs(d_kappa[i]-d_kappa_fd[i]));
-            }
-
-            // Approx DF for lambda
-            for(i=0;i<(p-1);i++){
-                    for(j=i+1;j<p;j++){
-                        lambda[i*p + j] += 1E-9 ; 
-                        lambda[j*p + i] += 1E-9 ; 
-                        d_lambda_fd[i*p + j] = (mv_vonmises_lossFunction(n,p,kappa,lambda,S,C,ro,NULL,NULL)-f)/1E-9  ;
-                        d_lambda_fd[j*p + i] = d_lambda_fd[i*p + j];
-                        printf("Lambda(%d,%d):  calc %f \t  fd approx: %f \t DIFF: %f \n",i,j,d_lambda[i*p + j],d_lambda_fd[i*p +j],fabs(d_lambda[i*p +j ]-d_lambda_fd[i*p + j]));
-                        lambda[i*p + j] -= 1E-9 ; 
-                        lambda[j*p + i] -= 1E-9 ; 
-                    }
-            }
-
-#endif
-/**************************************************************/
 
             // Kappa partials
             memcpy(g,d_kappa,sizeof(double)*p);
 
             // Apply penalization
-            if( (phi!=NULL) && (H != NULL) ){
+            if( (penparam > 0) ){
 
-                double fnorm = 0;
-                double fnorm_term;
+                double l1pen = 0;
 
-                // Compute f norm
+                // Compute l1
                  for (i=0; i < (p-1); i++) {
                     for (j=i+1; j < p; j++){
-                        // RECALL: P is actually diag(kappa) - lambda
-                        fnorm_term = (-lambda[ i*p + j] - phi[ i*p + j]) * H[ i*p + j];
-                        fnorm += fnorm_term * fnorm_term;
+                        l1pen += abs( lambda[i * p + j]);
                     }
                  }
             
                  // We also need to include kappa
                  for (i=0; i<p; i++){
-                        fnorm_term = (kappa[ i ] - phi[ i*p + i]) * H[ i*p + i];
-                        fnorm += fnorm_term * fnorm_term;
+                        l1pen += kappa[ i ]++ ;
                  }
+                 
                  // Add norm to F
-                 fnorm = sqrtl(fnorm);
-                 //f += log(n)*fnorm; // What is this logn doing here???
-                 f += fnorm;
-#ifdef DEBUG
-                printf("MATRIX P:\n");
-                for(i=0; i<p ; i++){
-                    for(j = 0 ; j<p ; j++){
-                        if( j == i ) printf( "%f\t", kappa[j]);
-                        else printf( "%f\t", -lambda[i*p + j]);
-                    }
-                    printf("\n");
-                }
-                
-                printf("MATRIX Phi:\n");
-                for(i=0; i<p ; i++){
-                    for(j = 0 ; j<p ; j++){
-                        printf( "%f\t", phi[i*p + j]);
-                    }
-                    printf("\n");
-                }
-                printf("MATRIX H:\n");
-                for(i=0; i<p ; i++){
-                    for(j = 0 ; j<p ; j++){
-                        printf( "%f\t", H[i*p + j]);
-                    }
-                    printf("\n");
-                }
-                printf("FNORM: %f\n", fnorm);
+                 f += penparam * l1pen;
 
-#endif
-                if(fnorm != 0){
+                 if(penparam > 0){
                     // Modify lambda partials
                     for (i=0; i < (p-1); i++) {
                         for (j=i+1; j < p; j++){
                             // RECALL: P is actually diag(kappa) - lambda
-                            // d_lambda[i*p + j] += log(n) * (-H[i*p + j] * H[i*p + j] * ( (-lambda[i*p + j]) - phi[ i*p + j] ) / fnorm) ;
-                            d_lambda[i*p + j] += (-H[i*p + j] * H[i*p + j] * ( (-lambda[i*p + j]) - phi[ i*p + j] ) / fnorm) ;
+                            d_lambda[i*p + j] += penparam * (lambda[i*p + j] > 0)?1:-1; 
                             d_lambda[j*p + i] = d_lambda[i*p + j];
                         }
                     }
     
                     // Modify kappa partials
                     for (i=0; i<p; i++){
-                            //d_kappa[i]+= log(n) * H[i*p + i] * H[i*p + i] * ( kappa[i] - phi[ i*p + i] ) / fnorm ;
-                            d_kappa[i]+= H[i*p + i] * H[i*p + i] * ( kappa[i] - phi[ i*p + i] ) / fnorm ;
+                            d_kappa[i] += penparam ;
                      }
                 }
             }
@@ -280,10 +202,6 @@ double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, in
     matrixUpperToFull(p,x+p,lambda);
 
     /** FreE*/
-
-#ifdef DEBUG
-            free(d_kappa_fd);
-#endif
     free(S); free(d_kappa); free(g);
     free(wa); free(iwa); free(nbd);
 
@@ -298,10 +216,10 @@ double mvvonmises_lbfgs_fit(int p, double* mu, double* kappa, double* lambda, in
 /****
  *
  */
-void __R_mvvonmises_lbfgs_fit(int* p, double* mu, double* kappa, double* lambda, int* n, double *samples, int *penalized, double* phi, double *H,
+void __R_mvvonmises_lbfgs_fit_l1(int* p, double* mu, double* kappa, double* lambda, int* n, double *samples, double* penparam,
                             int* verbose, double* prec, double* tol, int* mprec, double *lower, double *upper, int *bounded , double *loss){
-    if((*penalized) > 0)
-        *loss = mvvonmises_lbfgs_fit(*p, mu, kappa, lambda, *n, samples, phi, H, *verbose, *prec, *tol, *mprec, lower, upper, bounded );
+    if((*penparam) > 0)
+        *loss = mvvonmises_lbfgs_fit_l1(*p, mu, kappa, lambda, *n, samples, *penparam, *verbose, *prec, *tol, *mprec, lower, upper, bounded );
     else
         *loss = mvvonmises_lbfgs_fit(*p, mu, kappa, lambda, *n, samples, NULL, NULL, *verbose, *prec, *tol, *mprec, lower, upper, bounded );
 }
